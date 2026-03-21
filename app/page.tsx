@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 export default function Home() {
   return (
     <div className="bg-[#0a0a0a] text-white min-h-screen">
@@ -16,7 +18,10 @@ function Nav() {
   return (
     <header className="sticky top-0 z-50 bg-[#0a0a0a]/90 backdrop-blur border-b border-white/[0.06]">
       <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
-        <span className="text-[15px] font-semibold tracking-tight text-white">shonin</span>
+        <div className="flex items-center gap-2">
+          <Image src="/logo.png" alt="Shonin" width={24} height={24} />
+          <span className="font-semibold text-white">shonin</span>
+        </div>
         <nav className="flex items-center gap-5">
           <a href="/docs" className="text-sm text-[#888] hover:text-white transition-colors">
             Docs

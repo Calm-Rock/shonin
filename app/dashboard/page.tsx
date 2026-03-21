@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { supabaseAdmin } from '@/lib/supabase';
 import { StatusBadge } from '@/components/StatusBadge';
 
@@ -62,9 +63,12 @@ export default async function DashboardPage({
     <div className="min-h-screen bg-[#0d0d0d] text-white">
       {/* Header */}
       <div className="border-b border-[#1f1f1f] px-6 py-4 flex items-center justify-between">
-        <div>
-          <p className="text-xs text-[#6b7280] font-mono mb-0.5">shonin</p>
-          <h1 className="text-lg font-semibold text-white">Approvals</h1>
+        <div className="flex items-center gap-3">
+          <Image src="/logo.png" alt="Shonin" width={24} height={24} />
+          <div>
+            <p className="text-xs text-[#6b7280] font-mono mb-0.5">shonin</p>
+            <h1 className="text-lg font-semibold text-white">Approvals</h1>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-[#6b7280]">Key:</span>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 
 /* ─── Types ───────────────────────────────────────────────────────────── */
 interface NavItem {
@@ -48,8 +49,9 @@ export default function DocsPage() {
     <div className="bg-[#0a0a0a] text-white min-h-screen" style={{ scrollBehavior: "smooth" }}>
       {/* Top nav */}
       <header className="sticky top-0 z-50 bg-[#0a0a0a]/90 backdrop-blur border-b border-white/[0.06] h-14 flex items-center px-6 justify-between">
-        <a href="/" className="text-[15px] font-semibold tracking-tight text-white">
-          shonin
+        <a href="/" className="flex items-center gap-2">
+          <Image src="/logo.png" alt="Shonin" width={24} height={24} />
+          <span className="font-semibold text-white">shonin</span>
         </a>
         <div className="flex items-center gap-5">
           {/* Mobile sidebar toggle */}

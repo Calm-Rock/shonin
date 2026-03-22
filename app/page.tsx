@@ -26,6 +26,9 @@ function Nav() {
           <a href="/docs" className="text-sm text-[#888] hover:text-white transition-colors">
             Docs
           </a>
+          <a href="/dashboard" className="text-sm text-[#888] hover:text-white transition-colors">
+            Dashboard
+          </a>
           <a
             href="/signup"
             className="text-sm bg-white text-black font-medium px-4 py-1.5 rounded-full hover:bg-white/90 transition-colors"

@@ -19,7 +19,7 @@ export async function sendWelcomeEmail({ to, name, apiKey }: SendWelcomeEmailPar
     react: WelcomeEmail({
       name,
       apiKey,
-      dashboardUrl: `${APP_URL}/dashboard?key=${apiKey}`,
+      dashboardUrl: `${APP_URL}/dashboard`,
       docsUrl: `${APP_URL}/docs`,
     }),
   });

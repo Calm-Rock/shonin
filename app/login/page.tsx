@@ -6,7 +6,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 
 type FormState = "idle" | "loading" | "success" | "error";
 
-export default function SignupPage() {
+export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [state, setState] = useState<FormState>("idle");
   const [error, setError] = useState("");
@@ -57,14 +57,14 @@ export default function SignupPage() {
               </div>
               <h2 className="text-xl font-bold text-white mb-2">Check your inbox</h2>
               <p className="text-sm text-[#888]">
-                We sent a link to <span className="text-white">{email}</span>. Click it to create your account and get your API key.
+                We sent a login link to <span className="text-white">{email}</span>.
               </p>
             </div>
           ) : (
             <div className="bg-[#111] border border-white/[0.08] rounded-2xl p-8">
               <div className="mb-8">
-                <h1 className="text-2xl font-bold tracking-tight text-white mb-2">Get your API key</h1>
-                <p className="text-sm text-[#888]">Free to start. No credit card required.</p>
+                <h1 className="text-2xl font-bold tracking-tight text-white mb-2">Sign in</h1>
+                <p className="text-sm text-[#888]">We&apos;ll send a magic link to your inbox.</p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -105,15 +105,15 @@ export default function SignupPage() {
                       Sending…
                     </>
                   ) : (
-                    "Get API Key"
+                    "Send magic link"
                   )}
                 </button>
               </form>
 
               <p className="text-xs text-[#555] text-center mt-6">
-                Already have an account?{" "}
-                <a href="/login" className="text-[#888] hover:text-white transition-colors underline underline-offset-2">
-                  Log in
+                New here?{" "}
+                <a href="/signup" className="text-[#888] hover:text-white transition-colors underline underline-offset-2">
+                  Sign up
                 </a>
               </p>
             </div>

@@ -1,143 +1,212 @@
-import Image from 'next/image';
-import { supabaseAdmin } from '@/lib/supabase';
-import { StatusBadge } from '@/components/StatusBadge';
+import Image from "next/image";
+import { redirect } from "next/navigation";
+import { nanoid } from "nanoid";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { supabaseAdmin } from "@/lib/supabase";
+import SignOutButton from "./SignOutButton";
+import ApiKeySection from "./ApiKeySection";
+import ApprovalsTable from "./ApprovalsTable";
 
 interface Approval {
   id: string;
   action: string;
   approver_email: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: "pending" | "approved" | "rejected";
   created_at: string;
   decided_at: string | null;
 }
 
-function formatDate(iso: string) {
-  const d = new Date(iso);
+interface DayData {
+  label: string;
+  count: number;
+  approved: number;
+  rejected: number;
+  pending: number;
+}
+
+function buildChartData(approvals: Approval[]): DayData[] {
+  const days: DayData[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+    const label = d.toLocaleDateString("en-US", { weekday: "short" });
+    const dayRows = approvals.filter((a) => a.created_at.slice(0, 10) === dateStr);
+    days.push({
+      label,
+      count: dayRows.length,
+      approved: dayRows.filter((a) => a.status === "approved").length,
+      rejected: dayRows.filter((a) => a.status === "rejected").length,
+      pending: dayRows.filter((a) => a.status === "pending").length,
+    });
+  }
+  return days;
+}
+
+function BarChart({ data }: { data: DayData[] }) {
+  const maxCount = Math.max(...data.map((d) => d.count), 1);
+  const chartH = 72;
+  const barW = 28;
+  const gap = 12;
+  const totalW = data.length * barW + (data.length - 1) * gap;
+
   return (
-    d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) +
-    ' · ' +
-    d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+    <svg viewBox={`0 0 ${totalW} ${chartH + 24}`} className="w-full" aria-hidden>
+      {data.map((d, i) => {
+        const x = i * (barW + gap);
+        const barH = d.count === 0 ? 4 : Math.max(4, Math.round((d.count / maxCount) * chartH));
+        const y = chartH - barH;
+
+        let fill = "#2a2a2a";
+        if (d.count > 0) {
+          if (d.approved >= d.rejected && d.approved >= d.pending) fill = "#4ade80";
+          else if (d.rejected >= d.approved && d.rejected >= d.pending) fill = "#f87171";
+          else fill = "#facc15";
+        }
+
+        return (
+          <g key={d.label}>
+            {d.count > 0 && (
+              <text
+                x={x + barW / 2}
+                y={y - 4}
+                textAnchor="middle"
+                fontSize="9"
+                fill="#666"
+              >
+                {d.count}
+              </text>
+            )}
+            <rect x={x} y={y} width={barW} height={barH} rx={4} fill={fill} fillOpacity={0.8} />
+            <text
+              x={x + barW / 2}
+              y={chartH + 16}
+              textAnchor="middle"
+              fontSize="9"
+              fill="#555"
+            >
+              {d.label}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
   );
 }
 
-export default async function DashboardPage({
-  searchParams,
+function StatCard({
+  label,
+  value,
+  color,
 }: {
-  searchParams: Promise<{ key?: string }>;
+  label: string;
+  value: number;
+  color?: string;
 }) {
-  const { key } = await searchParams;
+  return (
+    <div className="bg-[#111] border border-white/[0.08] rounded-xl px-4 py-4">
+      <p className="text-xs text-[#555] mb-1">{label}</p>
+      <p className={`text-2xl font-bold ${color ?? "text-white"}`}>{value}</p>
+    </div>
+  );
+}
 
-  if (!key) {
-    return (
-      <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-2xl font-semibold text-white mb-2">Shonin Dashboard</p>
-          <p className="text-[#6b7280] text-sm">
-            Add your API key to the URL to view your approvals.
-          </p>
-          <code className="mt-4 inline-block bg-[#1a1a1a] text-[#a3a3a3] text-xs px-3 py-1.5 rounded-md border border-[#2a2a2a]">
-            /dashboard?key=your-api-key
-          </code>
-        </div>
-      </div>
-    );
+export default async function DashboardPage() {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) redirect("/login");
+
+  const { data: keyRow } = await supabaseAdmin
+    .from("api_keys")
+    .select("key")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const apiKey = keyRow?.key ?? "";
+
+  const { data: approvalsData } = await supabaseAdmin
+    .from("approvals")
+    .select("id, action, approver_email, status, created_at, decided_at")
+    .eq("account_id", apiKey)
+    .order("created_at", { ascending: false });
+
+  const approvals = (approvalsData ?? []) as Approval[];
+
+  const total = approvals.length;
+  const approved = approvals.filter((a) => a.status === "approved").length;
+  const rejected = approvals.filter((a) => a.status === "rejected").length;
+  const pending = approvals.filter((a) => a.status === "pending").length;
+
+  const chartData = buildChartData(approvals);
+
+  async function rotateKey(): Promise<{ key: string }> {
+    "use server";
+    const srv = await createSupabaseServerClient();
+    const {
+      data: { user: u },
+    } = await srv.auth.getUser();
+    if (!u) throw new Error("Not authenticated");
+    const newKey = `sk_live_${nanoid(24)}`;
+    await supabaseAdmin.from("api_keys").update({ key: newKey }).eq("user_id", u.id);
+    return { key: newKey };
   }
-
-  const { data: approvals, error } = await supabaseAdmin
-    .from('approvals')
-    .select('id, action, approver_email, status, created_at, decided_at')
-    .eq('account_id', key)
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center">
-        <p className="text-red-400 text-sm">Failed to load approvals. Check your API key.</p>
-      </div>
-    );
-  }
-
-  const rows = (approvals ?? []) as Approval[];
 
   return (
-    <div className="min-h-screen bg-[#0d0d0d] text-white">
-      {/* Header */}
-      <div className="border-b border-[#1f1f1f] px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+    <div className="min-h-screen bg-[#0a0a0a] text-white">
+      {/* Nav */}
+      <header className="sticky top-0 z-50 bg-[#0a0a0a]/90 backdrop-blur border-b border-white/[0.06] h-14 flex items-center px-6 justify-between">
+        <a href="/" className="flex items-center gap-2">
           <Image src="/logo.png" alt="Shonin" width={24} height={24} />
-          <div>
-            <p className="text-xs text-[#6b7280] font-mono mb-0.5">shonin</p>
-            <h1 className="text-lg font-semibold text-white">Approvals</h1>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-[#6b7280]">Key:</span>
-          <code className="text-xs bg-[#1a1a1a] border border-[#2a2a2a] text-[#a3a3a3] px-2 py-0.5 rounded">
-            {key.length > 24 ? `${key.slice(0, 12)}…${key.slice(-8)}` : key}
-          </code>
-        </div>
-      </div>
+          <span className="font-semibold text-white">shonin</span>
+        </a>
+        <nav className="flex items-center gap-5">
+          <a href="/docs" className="text-sm text-[#888] hover:text-white transition-colors">
+            Docs
+          </a>
+          <SignOutButton />
+        </nav>
+      </header>
 
-      {/* Content */}
-      <div className="px-6 py-6">
-        {rows.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="w-10 h-10 rounded-full bg-[#1a1a1a] flex items-center justify-center mb-4">
-              <svg className="w-5 h-5 text-[#4b4b4b]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-3-3v6M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <p className="text-[#6b7280] text-sm">No approvals yet for this key.</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto rounded-lg border border-[#1f1f1f]">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-[#1f1f1f] bg-[#111111]">
-                  <th className="text-left px-4 py-3 text-xs font-medium text-[#6b7280] uppercase tracking-wider">
-                    Action
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-[#6b7280] uppercase tracking-wider">
-                    Approver
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-[#6b7280] uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-[#6b7280] uppercase tracking-wider">
-                    Created
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-[#6b7280] uppercase tracking-wider">
-                    Decided
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#1a1a1a]">
-                {rows.map((row) => (
-                  <tr key={row.id} className="hover:bg-[#111111] transition-colors">
-                    <td className="px-4 py-3 text-white font-medium max-w-xs truncate">
-                      {row.action}
-                    </td>
-                    <td className="px-4 py-3 text-[#a3a3a3]">{row.approver_email}</td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={row.status} />
-                    </td>
-                    <td className="px-4 py-3 text-[#6b7280] whitespace-nowrap">
-                      {formatDate(row.created_at)}
-                    </td>
-                    <td className="px-4 py-3 text-[#6b7280] whitespace-nowrap">
-                      {row.decided_at ? formatDate(row.decided_at) : '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+      <main className="max-w-6xl mx-auto px-6 py-10 space-y-8">
+        {/* Page title */}
+        <div>
+          <h1 className="text-xl font-bold text-white">Dashboard</h1>
+          <p className="text-sm text-[#555] mt-0.5">{user.email}</p>
+        </div>
 
-        <p className="mt-4 text-right text-xs text-[#3a3a3a]">
-          {rows.length} approval{rows.length !== 1 ? 's' : ''}
-        </p>
-      </div>
+        {/* Stats */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard label="Total" value={total} />
+          <StatCard label="Approved" value={approved} color="text-green-400" />
+          <StatCard label="Rejected" value={rejected} color="text-red-400" />
+          <StatCard label="Pending" value={pending} color="text-yellow-400" />
+        </div>
+
+        {/* Two-column section */}
+        <div className="grid lg:grid-cols-2 gap-6">
+          {/* Bar chart */}
+          <div className="bg-[#111] border border-white/[0.08] rounded-xl p-5">
+            <p className="text-xs font-semibold text-[#555] uppercase tracking-widest mb-4">
+              Last 7 Days
+            </p>
+            <BarChart data={chartData} />
+          </div>
+
+          {/* API key */}
+          <ApiKeySection initialKey={apiKey} onRotate={rotateKey} />
+        </div>
+
+        {/* Approvals table */}
+        <div>
+          <p className="text-xs font-semibold text-[#555] uppercase tracking-widest mb-4">
+            Approvals
+          </p>
+          <ApprovalsTable approvals={approvals} />
+        </div>
+      </main>
     </div>
   );
 }

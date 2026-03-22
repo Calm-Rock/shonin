@@ -1,26 +1,16 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import Image from "next/image";
 
 type FormState = "idle" | "loading" | "success" | "error";
-
-interface SignupResult {
-  key: string;
-  name: string;
-  email: string;
-  message?: string;
-  already_exists?: boolean;
-}
 
 export default function SignupPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [state, setState] = useState<FormState>("idle");
   const [error, setError] = useState("");
-  const [result, setResult] = useState<SignupResult | null>(null);
-  const [copied, setCopied] = useState(false);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [successEmail, setSuccessEmail] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -41,20 +31,12 @@ export default function SignupPage() {
         return;
       }
 
-      setResult(data);
+      setSuccessEmail(data.email);
       setState("success");
     } catch {
       setError("Network error — please try again");
       setState("error");
     }
-  }
-
-  function copyKey() {
-    if (!result) return;
-    navigator.clipboard.writeText(result.key);
-    setCopied(true);
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => setCopied(false), 2000);
   }
 
   return (
@@ -78,8 +60,8 @@ export default function SignupPage() {
       {/* Content */}
       <main className="flex-1 flex items-center justify-center px-6 py-16">
         <div className="w-full max-w-md">
-          {state === "success" && result ? (
-            <SuccessCard result={result} copied={copied} onCopy={copyKey} />
+          {state === "success" ? (
+            <SuccessCard email={successEmail} />
           ) : (
             <FormCard
               name={name}
@@ -195,95 +177,25 @@ function FormCard({
 }
 
 /* ─── Success card ────────────────────────────────────────────────────── */
-function SuccessCard({
-  result,
-  copied,
-  onCopy,
-}: {
-  result: SignupResult;
-  copied: boolean;
-  onCopy: () => void;
-}) {
-  const firstName = result.name.split(" ")[0];
-
+function SuccessCard({ email }: { email: string }) {
   return (
-    <div className="bg-[#111] border border-white/[0.08] rounded-2xl p-8">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-9 h-9 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center shrink-0">
-          <svg className="w-4.5 h-4.5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
-        </div>
-        <div>
-          <p className="text-[15px] font-semibold text-white">
-            {result.already_exists ? "Welcome back" : `You're in, ${firstName}`}
-          </p>
-          <p className="text-xs text-[#666]">
-            {result.already_exists
-              ? result.message
-              : "Your API key is ready. We also emailed it to you."}
-          </p>
-        </div>
-      </div>
-
-      {/* Key block */}
-      <div className="bg-[#0a0a0a] rounded-xl border border-white/[0.06] overflow-hidden mb-4">
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.06]">
-          <span className="text-[10px] font-semibold text-[#555] uppercase tracking-widest">
-            API Key
-          </span>
-          <button
-            onClick={onCopy}
-            className="text-xs text-[#555] hover:text-white transition-colors flex items-center gap-1.5"
-          >
-            {copied ? (
-              <>
-                <svg className="w-3.5 h-3.5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-                <span className="text-green-400">Copied</span>
-              </>
-            ) : (
-              <>
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-                Copy
-              </>
-            )}
-          </button>
-        </div>
-        <div className="px-4 py-3.5">
-          <code className="text-sm font-mono text-[#a3e635] break-all">{result.key}</code>
-        </div>
-      </div>
-
-      {/* Warning */}
-      <div className="flex items-start gap-2.5 bg-yellow-500/5 border border-yellow-500/20 rounded-lg px-4 py-3 mb-6">
-        <svg className="w-4 h-4 text-yellow-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+    <div className="bg-[#111] border border-white/[0.08] rounded-2xl p-8 text-center">
+      <div className="w-12 h-12 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center mx-auto mb-6">
+        <svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
         </svg>
-        <p className="text-xs text-yellow-200/70 leading-relaxed">
-          Save this key — we won&apos;t show it again. It was also sent to{" "}
-          <span className="text-yellow-200/90">{result.email}</span>.
-        </p>
       </div>
-
-      {/* CTAs */}
-      <div className="flex gap-3">
-        <a
-          href={`/dashboard?key=${result.key}`}
-          className="flex-1 text-center text-sm font-semibold bg-white text-black py-2.5 rounded-lg hover:bg-white/90 transition-colors"
-        >
-          View Dashboard
-        </a>
-        <a
-          href="/docs"
-          className="flex-1 text-center text-sm font-semibold bg-white/[0.06] text-white py-2.5 rounded-lg border border-white/[0.08] hover:bg-white/10 transition-colors"
-        >
-          Read Docs
-        </a>
-      </div>
+      <h2 className="text-xl font-bold text-white mb-2">Check your inbox</h2>
+      <p className="text-sm text-[#888] mb-8">
+        We sent your API key to{" "}
+        <span className="text-white">{email}</span>. It contains everything you need to get started.
+      </p>
+      <a
+        href="/docs"
+        className="inline-block w-full text-center text-sm font-semibold bg-white text-black py-2.5 rounded-lg hover:bg-white/90 transition-colors"
+      >
+        Open Docs
+      </a>
     </div>
   );
 }

@@ -35,14 +35,13 @@ export async function POST(req: NextRequest) {
     .maybeSingle();
 
   if (existing) {
+    try {
+      await sendWelcomeEmail({ to: existing.email, name: existing.name, apiKey: existing.key });
+    } catch (emailErr) {
+      console.error('Welcome email error:', emailErr);
+    }
     return NextResponse.json(
-      {
-        key: existing.key,
-        name: existing.name,
-        email: existing.email,
-        message: 'You already have an API key, check your email',
-        already_exists: true,
-      },
+      { success: true, email: existing.email, already_exists: true },
       { status: 200 }
     );
   }
@@ -66,5 +65,5 @@ export async function POST(req: NextRequest) {
     console.error('Welcome email error:', emailErr);
   }
 
-  return NextResponse.json(data, { status: 201 });
+  return NextResponse.json({ success: true, email: data.email }, { status: 201 });
 }

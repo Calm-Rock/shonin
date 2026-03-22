@@ -1,0 +1,6 @@
+ALTER TABLE approvals ADD COLUMN command_type TEXT;
+ALTER TABLE approvals ADD COLUMN diff TEXT;
+ALTER TABLE approvals ADD COLUMN files JSONB;
+ALTER TABLE approvals ADD COLUMN risk_level TEXT;
+ALTER TABLE approvals ADD COLUMN risk_bullets JSONB;
+ALTER TABLE approvals ADD COLUMN token_used BOOLEAN DEFAULT FALSE NOT NULL;

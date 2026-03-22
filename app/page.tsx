@@ -91,7 +91,7 @@ function MockEmail() {
     <div className="w-full max-w-lg">
       {/* Browser/client chrome */}
       <div className="bg-[#161616] rounded-xl border border-white/[0.08] overflow-hidden shadow-2xl shadow-black/60">
-        {/* Inbox row context */}
+        {/* Window chrome */}
         <div className="border-b border-white/[0.06] px-4 py-2.5 flex items-center gap-3">
           <div className="flex gap-1.5">
             <div className="w-3 h-3 rounded-full bg-[#ff5f57]" />
@@ -113,33 +113,66 @@ function MockEmail() {
               <span className="text-xs font-semibold text-white">approvals@shonin.dev</span>
               <span className="text-xs text-[#555]">just now</span>
             </div>
-            <p className="text-xs font-medium text-[#ccc] truncate">Action required: Deploy to production</p>
-            <p className="text-xs text-[#555] truncate">PR #247 merged, 3 files changed · Approve or reject this request…</p>
+            <p className="text-xs font-medium text-[#ccc] truncate">⚠️ DESTRUCTIVE — git push origin main --force</p>
+            <p className="text-xs text-[#555] truncate">Will overwrite upstream commits · Approve or reject…</p>
           </div>
         </div>
 
         {/* Email body */}
-        <div className="px-6 py-6">
-          <p className="text-[10px] font-semibold text-[#555] uppercase tracking-widest mb-2">Action Required</p>
-          <p className="text-lg font-bold text-white mb-4">Deploy to production</p>
-
-          <div className="bg-[#1a1a1a] rounded-lg p-3 mb-6 border border-white/[0.05]">
-            <p className="text-[10px] font-semibold text-[#555] uppercase tracking-widest mb-1">Context</p>
-            <p className="text-xs text-[#aaa]">PR #247 merged, 3 files changed</p>
+        <div className="bg-white">
+          {/* Risk banner */}
+          <div className="bg-[#fef2f2] border-b border-[#fecaca] px-5 py-3">
+            <p className="text-[11px] font-bold text-[#b91c1c]">DESTRUCTIVE · This action cannot be undone</p>
+            <ul className="mt-1.5 space-y-0.5">
+              <li className="text-[10px] text-[#b91c1c]">• Will overwrite upstream commits</li>
+              <li className="text-[10px] text-[#b91c1c]">• Bypasses branch protection rules</li>
+            </ul>
           </div>
 
-          <div className="flex gap-3">
-            <button className="flex-1 bg-[#16a34a] hover:bg-[#15803d] text-white text-sm font-semibold py-2.5 rounded-lg transition-colors cursor-default">
-              Approve
-            </button>
-            <button className="flex-1 bg-[#dc2626] hover:bg-[#b91c1c] text-white text-sm font-semibold py-2.5 rounded-lg transition-colors cursor-default">
-              Reject
-            </button>
-          </div>
+          <div className="px-5 py-4">
+            {/* Command */}
+            <p className="text-[9px] font-semibold text-[#9ca3af] uppercase tracking-widest mb-1">Command</p>
+            <p className="text-sm font-bold text-[#111827] mb-3 leading-tight">git push origin main --force</p>
 
-          <p className="text-[10px] text-[#444] mt-4 text-center">
-            This link expires in 24 hours · Sent by Shonin
-          </p>
+            {/* Why */}
+            <div className="bg-[#f9fafb] rounded-md p-2.5 mb-3">
+              <p className="text-[9px] font-semibold text-[#9ca3af] uppercase tracking-widest mb-1">Why Claude wants this</p>
+              <p className="text-[10px] text-[#6b7280]">The remote has diverged after a rebase. Force push is needed to sync the branch.</p>
+            </div>
+
+            {/* Files */}
+            <div className="mb-3">
+              <p className="text-[9px] font-semibold text-[#9ca3af] uppercase tracking-widest mb-1.5">Files (2)</p>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#facc15] shrink-0" />
+                  <span className="text-[10px] font-mono text-[#374151]">app/api/deploy/route.ts</span>
+                  <span className="text-[9px] text-[#b45309] font-bold">MODIFIED</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80] shrink-0" />
+                  <span className="text-[10px] font-mono text-[#374151]">scripts/force-deploy.sh</span>
+                  <span className="text-[9px] text-[#15803d] font-bold">NEW</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Diff preview */}
+            <div className="bg-[#1a1a1a] rounded-md p-2.5 mb-4 overflow-hidden">
+              <p className="text-[9px] font-mono text-[#4ade80]">+ export async function POST(req) &#123;</p>
+              <p className="text-[9px] font-mono text-[#4ade80]">+   await deploy(&#123; force: true &#125;)</p>
+              <p className="text-[9px] font-mono text-[#f87171]">- // force deploy disabled</p>
+              <p className="text-[9px] font-mono text-[#6b7280] mt-1">… View full diff →</p>
+            </div>
+
+            {/* Buttons */}
+            <div className="flex items-center gap-3">
+              <button className="flex-1 bg-[#16a34a] text-white text-xs font-semibold py-2 rounded-md cursor-default">
+                Approve
+              </button>
+              <span className="text-xs text-[#dc2626] font-semibold underline cursor-default">Reject</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>

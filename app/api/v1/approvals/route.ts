@@ -3,6 +3,13 @@ import { z } from 'zod';
 import { nanoid } from 'nanoid';
 import { supabaseAdmin } from '@/lib/supabase';
 import { sendApprovalEmail } from '@/lib/send-approval-email';
+import { classifyRisk, inferCommandType } from '@/lib/risk';
+import type { FileChange } from '@/lib/risk';
+
+const fileChangeSchema = z.object({
+  path: z.string(),
+  status: z.enum(['modified', 'added', 'deleted', 'renamed']),
+});
 
 const bodySchema = z.object({
   action: z.string().min(1),
@@ -10,7 +17,13 @@ const bodySchema = z.object({
   context: z.string().optional(),
   webhook_url: z.string().url().optional(),
   expires_in_hours: z.number().positive().default(24),
+  command_type: z.string().optional(),
+  files: z.array(fileChangeSchema).optional(),
+  diff: z.string().optional(),
 });
+
+const DAILY_LIMIT = 50;
+const DIFF_MAX_BYTES = 50 * 1024; // 50KB
 
 function getApiKey(req: NextRequest): string | null {
   const auth = req.headers.get('authorization');
@@ -53,9 +66,20 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { action, approver_email, context, webhook_url, expires_in_hours } = parsed.data;
+  const { action, approver_email, context, webhook_url, expires_in_hours, files } = parsed.data;
+  let { command_type, diff } = parsed.data;
 
-  const DAILY_LIMIT = 10;
+  // Infer command_type from action string if not provided
+  if (!command_type) {
+    command_type = inferCommandType(action) ?? undefined;
+  }
+
+  // Truncate diff at 50KB
+  if (diff && Buffer.byteLength(diff, 'utf8') > DIFF_MAX_BYTES) {
+    diff = Buffer.from(diff, 'utf8').slice(0, DIFF_MAX_BYTES).toString('utf8') + '\n[truncated]';
+  }
+
+  const { risk_level, risk_bullets } = classifyRisk(command_type);
 
   let usedToday = 0;
   if (!unlimited) {
@@ -69,7 +93,7 @@ export async function POST(req: NextRequest) {
 
     if (usedToday >= DAILY_LIMIT) {
       return NextResponse.json(
-        { error: 'Daily limit reached. You can send 10 approvals per day on the free plan.' },
+        { error: `Daily limit reached. You can send ${DAILY_LIMIT} approvals per day on the free plan.` },
         { status: 429 }
       );
     }
@@ -90,6 +114,12 @@ export async function POST(req: NextRequest) {
       approve_token,
       reject_token,
       expires_at,
+      command_type: command_type ?? null,
+      diff: diff ?? null,
+      files: (files as FileChange[]) ?? null,
+      risk_level,
+      risk_bullets,
+      token_used: false,
     })
     .select('id, status, approve_token, reject_token, created_at, expires_at')
     .single();
@@ -107,6 +137,12 @@ export async function POST(req: NextRequest) {
       approveToken: approve_token,
       rejectToken: reject_token,
       expiresAt: expires_at,
+      approvalId: data.id,
+      commandType: command_type,
+      riskLevel: risk_level,
+      riskBullets: risk_bullets,
+      files: files as FileChange[],
+      diff,
     });
   } catch (emailErr) {
     console.error('Email send error:', emailErr);

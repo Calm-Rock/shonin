@@ -1,13 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
+}
+
 function htmlPage(title: string, emoji: string, message: string, color: string): NextResponse {
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${title} · Shonin</title>
+  <title>${escapeHtml(title)} · Shonin</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -28,7 +37,7 @@ function htmlPage(title: string, emoji: string, message: string, color: string):
       text-align: center;
     }
     .emoji { font-size: 48px; margin-bottom: 16px; }
-    h1 { font-size: 24px; font-weight: 700; color: ${color}; margin-bottom: 12px; }
+    h1 { font-size: 24px; font-weight: 700; color: ${escapeHtml(color)}; margin-bottom: 12px; }
     p { font-size: 15px; color: #6b7280; line-height: 1.6; }
     .brand { margin-top: 32px; font-size: 12px; color: #9ca3af; }
   </style>
@@ -36,7 +45,7 @@ function htmlPage(title: string, emoji: string, message: string, color: string):
 <body>
   <div class="card">
     <div class="emoji">${emoji}</div>
-    <h1>${title}</h1>
+    <h1>${escapeHtml(title)}</h1>
     <p>${message}</p>
     <p class="brand">Powered by Shonin</p>
   </div>
@@ -82,14 +91,15 @@ export async function GET(
     );
   }
 
-  if (approval.status !== 'pending') {
+  // token_used check: already decided (includes race condition protection)
+  if (approval.token_used) {
     const label = approval.status === 'approved' ? 'Approved' : 'Rejected';
     const emoji = approval.status === 'approved' ? '✅' : '🚫';
     const color = approval.status === 'approved' ? '#16a34a' : '#dc2626';
     return htmlPage(
       `Already ${label}`,
       emoji,
-      `This request was already ${approval.status}. No further action is needed.`,
+      'This approval has already been decided. No further action is needed.',
       color
     );
   }
@@ -105,10 +115,13 @@ export async function GET(
 
   const now = new Date().toISOString();
 
-  const { error } = await supabaseAdmin
+  // Atomic update: only succeeds if token_used is still false (prevents race conditions)
+  const { data: updated, error } = await supabaseAdmin
     .from('approvals')
-    .update({ status: decision, decided_at: now })
-    .eq('id', approval.id);
+    .update({ status: decision, decided_at: now, token_used: true })
+    .eq('id', approval.id)
+    .eq('token_used', false)
+    .select('id');
 
   if (error) {
     console.error('Supabase update error:', error);
@@ -118,6 +131,11 @@ export async function GET(
       'We could not record your decision. Please try again.',
       '#dc2626'
     );
+  }
+
+  if (!updated || updated.length === 0) {
+    // Race condition: another request got there first
+    return new NextResponse(null, { status: 410 });
   }
 
   // Fire webhook if present
@@ -137,14 +155,14 @@ export async function GET(
     return htmlPage(
       'Approved',
       '✅',
-      `You approved: <strong>${approval.action}</strong>. The automation has been given the green light.`,
+      `Approved — you can close this tab.`,
       '#16a34a'
     );
   } else {
     return htmlPage(
       'Rejected',
       '🚫',
-      `You rejected: <strong>${approval.action}</strong>. The automation has been stopped.`,
+      `Rejected — the action has been stopped. You can close this tab.`,
       '#dc2626'
     );
   }

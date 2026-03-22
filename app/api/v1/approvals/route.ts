@@ -55,6 +55,23 @@ export async function POST(req: NextRequest) {
 
   const { action, approver_email, context, webhook_url, expires_in_hours } = parsed.data;
 
+  const DAILY_LIMIT = 10;
+
+  const { count } = await supabaseAdmin
+    .from('approvals')
+    .select('*', { count: 'exact', head: true })
+    .eq('account_id', apiKey)
+    .gte('created_at', new Date(new Date().setUTCHours(0, 0, 0, 0)).toISOString());
+
+  const usedToday = count ?? 0;
+
+  if (usedToday >= DAILY_LIMIT) {
+    return NextResponse.json(
+      { error: 'Daily limit reached. You can send 10 approvals per day on the free plan.' },
+      { status: 429 }
+    );
+  }
+
   const approve_token = nanoid(32);
   const reject_token = nanoid(32);
   const expires_at = new Date(Date.now() + expires_in_hours * 60 * 60 * 1000).toISOString();
@@ -93,5 +110,16 @@ export async function POST(req: NextRequest) {
     // Don't fail the request — approval is created, email can be retried
   }
 
-  return NextResponse.json(data, { status: 201 });
+  const newTotal = usedToday + 1;
+  return NextResponse.json(
+    {
+      ...data,
+      usage: {
+        today: newTotal,
+        daily_limit: DAILY_LIMIT,
+        remaining_today: DAILY_LIMIT - newTotal,
+      },
+    },
+    { status: 201 }
+  );
 }

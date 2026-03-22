@@ -18,13 +18,13 @@ function getApiKey(req: NextRequest): string | null {
   return auth.slice(7).trim() || null;
 }
 
-async function validateApiKey(key: string): Promise<boolean> {
+async function validateApiKey(key: string): Promise<{ valid: boolean; unlimited: boolean }> {
   const { data } = await supabaseAdmin
     .from('api_keys')
-    .select('id')
+    .select('id, unlimited')
     .eq('key', key)
     .maybeSingle();
-  return !!data;
+  return { valid: !!data, unlimited: data?.unlimited ?? false };
 }
 
 export async function POST(req: NextRequest) {
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing or invalid Authorization header' }, { status: 401 });
   }
 
-  const valid = await validateApiKey(apiKey);
+  const { valid, unlimited } = await validateApiKey(apiKey);
   if (!valid) {
     return NextResponse.json({ error: 'Invalid API key' }, { status: 401 });
   }
@@ -57,19 +57,22 @@ export async function POST(req: NextRequest) {
 
   const DAILY_LIMIT = 10;
 
-  const { count } = await supabaseAdmin
-    .from('approvals')
-    .select('*', { count: 'exact', head: true })
-    .eq('account_id', apiKey)
-    .gte('created_at', new Date(new Date().setUTCHours(0, 0, 0, 0)).toISOString());
+  let usedToday = 0;
+  if (!unlimited) {
+    const { count } = await supabaseAdmin
+      .from('approvals')
+      .select('*', { count: 'exact', head: true })
+      .eq('account_id', apiKey)
+      .gte('created_at', new Date(new Date().setUTCHours(0, 0, 0, 0)).toISOString());
 
-  const usedToday = count ?? 0;
+    usedToday = count ?? 0;
 
-  if (usedToday >= DAILY_LIMIT) {
-    return NextResponse.json(
-      { error: 'Daily limit reached. You can send 10 approvals per day on the free plan.' },
-      { status: 429 }
-    );
+    if (usedToday >= DAILY_LIMIT) {
+      return NextResponse.json(
+        { error: 'Daily limit reached. You can send 10 approvals per day on the free plan.' },
+        { status: 429 }
+      );
+    }
   }
 
   const approve_token = nanoid(32);
@@ -114,11 +117,9 @@ export async function POST(req: NextRequest) {
   return NextResponse.json(
     {
       ...data,
-      usage: {
-        today: newTotal,
-        daily_limit: DAILY_LIMIT,
-        remaining_today: DAILY_LIMIT - newTotal,
-      },
+      usage: unlimited
+        ? { unlimited: true }
+        : { today: newTotal, daily_limit: DAILY_LIMIT, remaining_today: DAILY_LIMIT - newTotal },
     },
     { status: 201 }
   );

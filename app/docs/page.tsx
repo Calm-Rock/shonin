@@ -66,7 +66,7 @@ export default function DocsPage() {
                 : <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />}
             </svg>
           </button>
-          <a href="/dashboard" className="text-sm bg-white text-black font-medium px-4 py-1.5 rounded-full hover:bg-white/90 transition-colors hidden sm:inline-flex">
+          <a href="/signup" className="text-sm bg-white text-black font-medium px-4 py-1.5 rounded-full hover:bg-white/90 transition-colors hidden sm:inline-flex">
             Get Started
           </a>
         </div>

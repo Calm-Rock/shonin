@@ -220,18 +220,6 @@ View your approval history at `/dashboard?key=YOUR_API_KEY`. Shows status badges
 
 ---
 
-## Pricing
-
-| Plan | Price | Approvals/month |
-|---|---|---|
-| Free | $0 | 50 |
-| Pro | $29/mo | 2,000 |
-| Team | $99/mo | Unlimited |
-
-Currently in beta — all features available on the free tier.
-
----
-
 ## License
 
 MIT

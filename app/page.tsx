@@ -27,7 +27,7 @@ function Nav() {
             Docs
           </a>
           <a
-            href="/dashboard"
+            href="/signup"
             className="text-sm bg-white text-black font-medium px-4 py-1.5 rounded-full hover:bg-white/90 transition-colors"
           >
             Get Started
@@ -61,7 +61,7 @@ function Hero() {
 
       <div className="flex items-center gap-3 mb-16">
         <a
-          href="/dashboard"
+          href="/signup"
           className="bg-white text-black font-medium text-sm px-5 py-2.5 rounded-full hover:bg-white/90 transition-colors"
         >
           Get Started
@@ -394,7 +394,7 @@ function Pricing() {
               </ul>
 
               <a
-                href="/dashboard"
+                href="/signup"
                 className={`mt-2 text-center text-sm font-medium py-2.5 rounded-lg transition-colors ${
                   tier.highlighted
                     ? "bg-black text-white hover:bg-[#222]"

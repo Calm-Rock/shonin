@@ -65,7 +65,7 @@ export function inferCommandType(action: string): string | null {
 }
 
 const DIFF_EXCLUDED_NAMES = ['package-lock.json', 'yarn.lock', 'pnpm-lock.yaml'];
-const DIFF_EXCLUDED_PATTERNS = [/\.lock$/, /\.tsbuildinfo$/, /^dist\//, /^\.next\//];
+const DIFF_EXCLUDED_PATTERNS = [/\.lock$/, /\.tsbuildinfo$/, /^dist\//, /^\.next\//, /^\.env/];
 
 function isExcludedPath(filePath: string): boolean {
   const name = filePath.split('/').pop() ?? filePath;

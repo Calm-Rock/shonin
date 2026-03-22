@@ -74,9 +74,13 @@ export async function POST(req: NextRequest) {
     command_type = inferCommandType(action) ?? undefined;
   }
 
-  // Truncate diff at 50KB
+  // Truncate diff at 50KB — slice at character boundary to avoid corrupt UTF-8
   if (diff && Buffer.byteLength(diff, 'utf8') > DIFF_MAX_BYTES) {
-    diff = Buffer.from(diff, 'utf8').slice(0, DIFF_MAX_BYTES).toString('utf8') + '\n[truncated]';
+    const buf = Buffer.from(diff, 'utf8');
+    // Walk back from the byte limit to find a valid UTF-8 character boundary
+    let end = DIFF_MAX_BYTES;
+    while (end > 0 && (buf[end] & 0xc0) === 0x80) end--;
+    diff = buf.slice(0, end).toString('utf8') + '\n[truncated]';
   }
 
   const { risk_level, risk_bullets } = classifyRisk(command_type);

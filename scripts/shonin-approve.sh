@@ -78,6 +78,9 @@ fi
 echo "Requesting Shonin approval for: $COMMAND"
 
 # ── Build and send request ────────────────────────────────────────────────────
+# Export vars so python3 subprocess can read them via os.environ
+export COMMAND WHY COMMAND_TYPE FILES_JSON DIFF_CONTENT APPROVER
+
 RESPONSE=$(python3 -c "
 import json, os, sys
 
@@ -105,8 +108,7 @@ if diff:
 # Remove None values
 payload = {k: v for k, v in payload.items() if v is not None}
 print(json.dumps(payload))
-" | COMMAND="$COMMAND" APPROVER="$APPROVER" WHY="$WHY" COMMAND_TYPE="$COMMAND_TYPE" FILES_JSON="$FILES_JSON" DIFF_CONTENT="$DIFF_CONTENT" \
-  curl -s -X POST "$API_URL/approvals" \
+" | curl -s -X POST "$API_URL/approvals" \
     -H "Authorization: Bearer $API_KEY" \
     -H "Content-Type: application/json" \
     -d @-)

@@ -26,7 +26,11 @@ export default function SignupPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error ?? "Something went wrong");
+        setError(
+          res.status === 429
+            ? "We already sent your API key recently. Check your inbox or wait 10 minutes to request again."
+            : (data.error ?? "Something went wrong")
+        );
         setState("error");
         return;
       }

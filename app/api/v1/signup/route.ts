@@ -30,11 +30,26 @@ export async function POST(req: NextRequest) {
   // Check for existing key with this email
   const { data: existing } = await supabaseAdmin
     .from('api_keys')
-    .select('key, name, email')
+    .select('key, name, email, updated_at')
     .eq('email', email)
     .maybeSingle();
 
   if (existing) {
+    const lastSent = existing.updated_at ? new Date(existing.updated_at).getTime() : 0;
+    const minutesElapsed = (Date.now() - lastSent) / 1000 / 60;
+
+    if (minutesElapsed < 10) {
+      return NextResponse.json(
+        { error: 'We already sent your API key. Please wait 10 minutes before requesting again.' },
+        { status: 429 }
+      );
+    }
+
+    await supabaseAdmin
+      .from('api_keys')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('email', email);
+
     try {
       await sendWelcomeEmail({ to: existing.email, name: existing.name, apiKey: existing.key });
     } catch (emailErr) {

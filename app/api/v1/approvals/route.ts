@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { nanoid } from 'nanoid';
 import { supabaseAdmin } from '@/lib/supabase';
+import { validateApiKey } from '@/lib/api-keys';
+import { checkDemoLimits, PER_KEY_DAILY_LIMIT } from '@/lib/demo-limits';
+import { emailsSentToday } from '@/lib/email-budget';
 import { sendApprovalEmail } from '@/lib/send-approval-email';
 import { classifyRisk, inferCommandType } from '@/lib/risk';
 import type { FileChange } from '@/lib/risk';
@@ -22,7 +25,6 @@ const bodySchema = z.object({
   diff: z.string().optional(),
 });
 
-const DAILY_LIMIT = 50;
 const DIFF_MAX_BYTES = 50 * 1024; // 50KB
 
 function getApiKey(req: NextRequest): string | null {
@@ -31,22 +33,13 @@ function getApiKey(req: NextRequest): string | null {
   return auth.slice(7).trim() || null;
 }
 
-async function validateApiKey(key: string): Promise<{ valid: boolean; unlimited: boolean }> {
-  const { data } = await supabaseAdmin
-    .from('api_keys')
-    .select('id, unlimited')
-    .eq('key', key)
-    .maybeSingle();
-  return { valid: !!data, unlimited: data?.unlimited ?? false };
-}
-
 export async function POST(req: NextRequest) {
   const apiKey = getApiKey(req);
   if (!apiKey) {
     return NextResponse.json({ error: 'Missing or invalid Authorization header' }, { status: 401 });
   }
 
-  const { valid, unlimited } = await validateApiKey(apiKey);
+  const { valid, unlimited, email: keyEmail } = await validateApiKey(apiKey);
   if (!valid) {
     return NextResponse.json({ error: 'Invalid API key' }, { status: 401 });
   }
@@ -95,11 +88,14 @@ export async function POST(req: NextRequest) {
 
     usedToday = count ?? 0;
 
-    if (usedToday >= DAILY_LIMIT) {
-      return NextResponse.json(
-        { error: `Daily limit reached. You can send ${DAILY_LIMIT} approvals per day on the free plan.` },
-        { status: 429 }
-      );
+    const check = checkDemoLimits({
+      keyEmail,
+      recipientEmail: approver_email,
+      usedByKeyToday: usedToday,
+      sentTodayGlobal: await emailsSentToday(),
+    });
+    if (!check.ok) {
+      return NextResponse.json({ error: check.error }, { status: check.status });
     }
   }
 
@@ -159,7 +155,7 @@ export async function POST(req: NextRequest) {
       ...data,
       usage: unlimited
         ? { unlimited: true }
-        : { today: newTotal, daily_limit: DAILY_LIMIT, remaining_today: DAILY_LIMIT - newTotal },
+        : { today: newTotal, daily_limit: PER_KEY_DAILY_LIMIT, remaining_today: PER_KEY_DAILY_LIMIT - newTotal },
     },
     { status: 201 }
   );

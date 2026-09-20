@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { nanoid } from 'nanoid';
 import { supabaseAdmin } from '@/lib/supabase';
+import { validateApiKey } from '@/lib/api-keys';
+import { checkDemoLimits, PER_KEY_DAILY_LIMIT } from '@/lib/demo-limits';
+import { emailsSentToday } from '@/lib/email-budget';
 import { sendDecisionEmail } from '@/lib/send-decision-email';
 
 const optionSchema = z.object({
@@ -18,21 +21,10 @@ const bodySchema = z.object({
   expires_in_hours: z.number().positive().default(24),
 });
 
-const DAILY_LIMIT = 50;
-
 function getApiKey(req: NextRequest): string | null {
   const auth = req.headers.get('authorization');
   if (!auth?.startsWith('Bearer ')) return null;
   return auth.slice(7).trim() || null;
-}
-
-async function validateApiKey(key: string): Promise<{ valid: boolean; unlimited: boolean }> {
-  const { data } = await supabaseAdmin
-    .from('api_keys')
-    .select('id, unlimited')
-    .eq('key', key)
-    .maybeSingle();
-  return { valid: !!data, unlimited: data?.unlimited ?? false };
 }
 
 export async function POST(req: NextRequest) {
@@ -41,7 +33,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing or invalid Authorization header' }, { status: 401 });
   }
 
-  const { valid, unlimited } = await validateApiKey(apiKey);
+  const { valid, unlimited, email: keyEmail } = await validateApiKey(apiKey);
   if (!valid) {
     return NextResponse.json({ error: 'Invalid API key' }, { status: 401 });
   }
@@ -75,11 +67,14 @@ export async function POST(req: NextRequest) {
 
     usedToday = count ?? 0;
 
-    if (usedToday >= DAILY_LIMIT) {
-      return NextResponse.json(
-        { error: `Daily limit reached. You can send ${DAILY_LIMIT} decisions per day on the free plan.` },
-        { status: 429 }
-      );
+    const check = checkDemoLimits({
+      keyEmail,
+      recipientEmail: respondent_email,
+      usedByKeyToday: usedToday,
+      sentTodayGlobal: await emailsSentToday(),
+    });
+    if (!check.ok) {
+      return NextResponse.json({ error: check.error }, { status: check.status });
     }
   }
 
@@ -131,7 +126,7 @@ export async function POST(req: NextRequest) {
       ...data,
       usage: unlimited
         ? { unlimited: true }
-        : { today: newTotal, daily_limit: DAILY_LIMIT, remaining_today: DAILY_LIMIT - newTotal },
+        : { today: newTotal, daily_limit: PER_KEY_DAILY_LIMIT, remaining_today: PER_KEY_DAILY_LIMIT - newTotal },
     },
     { status: 201 }
   );

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { nanoid } from 'nanoid';
 import { supabaseAdmin } from '@/lib/supabase';
+import { BUDGET_EXHAUSTED_MESSAGE, GLOBAL_DAILY_EMAIL_BUDGET } from '@/lib/demo-limits';
+import { emailsSentToday } from '@/lib/email-budget';
 import { sendWelcomeEmail } from '@/lib/send-welcome-email';
 
 const bodySchema = z.object({
@@ -26,6 +28,10 @@ export async function POST(req: NextRequest) {
   }
 
   const { name, email } = parsed.data;
+
+  if ((await emailsSentToday()) >= GLOBAL_DAILY_EMAIL_BUDGET) {
+    return NextResponse.json({ error: BUDGET_EXHAUSTED_MESSAGE }, { status: 503 });
+  }
 
   // Check for existing key with this email
   const { data: existing } = await supabaseAdmin

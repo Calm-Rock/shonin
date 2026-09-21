@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="public/logo.png" alt="Shonin logo" width="96" />
+</p>
+
 <h1 align="center">Shonin</h1>
 
 <p align="center">
@@ -45,21 +49,6 @@ console.log(approval.status); // "pending" | "approved" | "rejected"
 ```
 
 The API never returns the approve or reject tokens, so the agent that asks for approval cannot approve its own request. Only the person who receives the email can decide. Opening a link in an email never decides anything either: it leads to a confirm page, and the decision is a POST from that page.
-
----
-
-## Hosted demo limits
-
-The demo at shonin.dev shares one small email allowance, so it is deliberately capped:
-
-| Limit | Value |
-|---|---|
-| Requests per API key | 2 per day |
-| Recipient | Your own account email only |
-| Shared email budget | 50 per day across everyone |
-| Login emails sent through the backup route | 10 per day, 2 per address |
-
-For real use, [self-host](#self-hosting): none of these limits apply there.
 
 ---
 
@@ -174,7 +163,7 @@ cp .env.example .env.local
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | The project's public (anon) key |
 | `SUPABASE_SERVICE_ROLE_KEY` | The service-role key. Keep it secret; it is only used on the server |
 | `NEXT_PUBLIC_APP_URL` | Where the app is served, for example `http://localhost:3000` |
-| `DEMO_MODE` | Leave empty. Set to `true` only to turn on the hosted-demo limits above |
+| `DEMO_MODE` | Leave empty. Set to `true` only for a public demo: it caps each key at 2 requests per day, limits recipients to the key owner, and applies shared daily email budgets |
 | `ALLOW_PRIVATE_WEBHOOKS` | Set to `true` to allow `http` and private-network webhooks, for example behind a firewall |
 
 3. Create the database: open the Supabase SQL editor and run `supabase/schema.sql`. It creates every table and turns on row-level security.
@@ -196,12 +185,6 @@ npm run dev
 ```
 
 Run the tests with `npm test`.
-
----
-
-## Tech stack
-
-Next.js 16 (App Router), React 19, TypeScript, Supabase (Postgres and Auth), Resend with React Email, Zod, Tailwind CSS 4, Vitest.
 
 ---
 

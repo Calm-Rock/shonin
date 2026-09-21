@@ -1,4 +1,8 @@
+import type { Metadata } from 'next';
 import { supabaseAdmin } from '@/lib/supabase';
+
+// The URL carries a one-time token: keep it out of search indexes and out of Referer headers.
+export const metadata: Metadata = { robots: { index: false, follow: false }, referrer: 'no-referrer' };
 
 type DecisionOption = { key: string; label: string; token: string };
 

@@ -1,6 +1,10 @@
+import type { Metadata } from 'next';
 import { supabaseAdmin } from '@/lib/supabase';
 import type { RiskLevel } from '@/lib/risk';
 import ConfirmClient from './ConfirmClient';
+
+// The URL carries a one-time token: keep it out of search indexes and out of Referer headers.
+export const metadata: Metadata = { robots: { index: false, follow: false }, referrer: 'no-referrer' };
 
 function ErrorPage({ title, message }: { title: string; message: string }) {
   return (

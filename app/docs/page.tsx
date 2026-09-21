@@ -131,8 +131,8 @@ export default function DocsPage() {
             <p className="text-[#888] text-sm leading-relaxed">
               All requests must include an{" "}
               <Code inline>Authorization: Bearer &lt;api_key&gt;</Code> header, except the{" "}
-              <Code inline>GET /v1/decide/:token</Code> endpoint which is public and used directly
-              by approvers clicking email links.
+              <Code inline>/v1/decide/:token</Code> links in approval emails, which approvers open
+              and which need no key.
             </p>
           </Section>
 
@@ -168,7 +168,7 @@ export default function DocsPage() {
                 { name: "action", type: "string", required: true, description: "A short description of what needs approval. Shown prominently in the email." },
                 { name: "approver_email", type: "string", required: true, description: "The email address of the person who will approve or reject." },
                 { name: "context", type: "string", required: false, description: "Optional extra context displayed in the email below the action." },
-                { name: "webhook_url", type: "string", required: false, description: "URL to POST the decision to when the approver clicks Approve or Reject." },
+                { name: "webhook_url", type: "string", required: false, description: "Public https URL to POST the decision to when the approver clicks Approve or Reject. Private and reserved addresses are rejected with a 400." },
                 { name: "expires_in_hours", type: "number", required: false, description: "How many hours before the approval link expires. Defaults to 24." },
               ]}
             />
@@ -191,8 +191,6 @@ export default function DocsPage() {
                 <CodeBlock lang="json" code={`{
   "id": "a1b2c3d4-...",
   "status": "pending",
-  "approve_token": "Abc123...",
-  "reject_token": "Xyz789...",
   "created_at": "2026-03-21T18:00:00Z",
   "expires_at": "2026-03-22T18:00:00Z"
 }`} />
@@ -222,7 +220,6 @@ export default function DocsPage() {
                 <h3 className="text-sm font-semibold text-white mb-3">Example response <span className="text-[#3d9e5f] text-xs font-normal ml-1">200 OK</span></h3>
                 <CodeBlock lang="json" code={`{
   "id": "a1b2c3d4-...",
-  "account_id": "sk_your_api_key",
   "action": "Deploy to production",
   "approver_email": "cto@company.com",
   "context": "PR #247 merged, 3 files changed",
@@ -240,32 +237,35 @@ export default function DocsPage() {
           <Section
             id="decide"
             title="Decide"
-            badge={{ label: "GET", color: "green" }}
+            badge={{ label: "POST", color: "blue" }}
             endpoint="/v1/decide/:token"
           >
             <p className="text-[#888] leading-relaxed">
-              Records the approver&apos;s decision and returns an HTML confirmation page. This endpoint
-              requires no authentication — it is the URL embedded in the approval email that the
-              approver clicks directly.
+              Records the approver&apos;s decision and returns an HTML confirmation page. It needs no
+              API key. The links in the approval email open a confirm page first (a GET only ever
+              redirects there and changes nothing), and the decision is recorded when the approver
+              confirms, which sends a POST to this endpoint. That is why a mail scanner opening
+              every link in an email can never decide for the approver.
             </p>
             <InfoBox>
-              Each approval has two tokens: an <Code inline>approve_token</Code> and a{" "}
-              <Code inline>reject_token</Code>. The appropriate button in the email links to the
-              matching token URL. Tokens are single-use.
+              Each approval has an approve token and a reject token. They exist only in the email
+              sent to the approver and are never returned by the API, so the code that requested an
+              approval cannot approve it itself. Tokens are single-use.
             </InfoBox>
 
             <h3 className="text-sm font-semibold text-white mt-6 mb-3">Path parameter</h3>
             <ParamTable
               params={[
-                { name: "token", type: "string", required: true, description: "The approve_token or reject_token from the approval object. Determines the decision recorded." },
+                { name: "token", type: "string", required: true, description: "The approve or reject token from the email link. Determines the decision recorded." },
               ]}
             />
 
             <h3 className="text-sm font-semibold text-white mt-6 mb-3">Behavior</h3>
             <div className="space-y-2">
               {[
-                ["Token matches approve_token", "Records status = approved, fires webhook if set, returns HTML success page."],
-                ["Token matches reject_token", "Records status = rejected, fires webhook if set, returns HTML rejection page."],
+                ["GET request", "Redirects to the confirm page. Changes nothing."],
+                ["POST with the approve token", "Records status = approved, fires webhook if set, returns HTML success page."],
+                ["POST with the reject token", "Records status = rejected, fires webhook if set, returns HTML rejection page."],
                 ["Approval already decided", "Returns an HTML page indicating it was already acted on. No change to state."],
                 ["Approval expired", "Returns an HTML expired page. No change to state."],
                 ["Token not found", "Returns an HTML invalid link page."],

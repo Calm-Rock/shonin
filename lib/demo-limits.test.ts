@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { checkDemoLimits, GLOBAL_DAILY_EMAIL_BUDGET, PER_KEY_DAILY_LIMIT } from './demo-limits';
+import {
+  checkDemoLimits,
+  checkLoginEmailLimits,
+  GLOBAL_DAILY_EMAIL_BUDGET,
+  LOGIN_EMAIL_DAILY_LIMIT,
+  LOGIN_EMAIL_PER_ADDRESS_DAILY_LIMIT,
+  PER_KEY_DAILY_LIMIT,
+} from './demo-limits';
 
 const base = {
   keyEmail: 'me@example.com',
@@ -57,5 +64,47 @@ describe('checkDemoLimits', () => {
       sentTodayGlobal: GLOBAL_DAILY_EMAIL_BUDGET,
     });
     expect(r).toMatchObject({ ok: false, status: 403 });
+  });
+});
+
+describe('checkLoginEmailLimits', () => {
+  const login = { loginSentToday: 0, sentToAddressToday: 0, sentTodayGlobal: 0 };
+
+  it('allows a login email when nothing has been sent', () => {
+    expect(checkLoginEmailLimits(login)).toEqual({ ok: true });
+  });
+
+  it('allows the last per-address send and blocks the next with 429', () => {
+    expect(checkLoginEmailLimits({ ...login, sentToAddressToday: LOGIN_EMAIL_PER_ADDRESS_DAILY_LIMIT - 1 })).toEqual({ ok: true });
+    expect(checkLoginEmailLimits({ ...login, sentToAddressToday: LOGIN_EMAIL_PER_ADDRESS_DAILY_LIMIT })).toMatchObject({
+      ok: false,
+      status: 429,
+    });
+  });
+
+  it('caps login emails at 10 a day across everyone', () => {
+    expect(LOGIN_EMAIL_DAILY_LIMIT).toBe(10);
+    expect(checkLoginEmailLimits({ ...login, loginSentToday: LOGIN_EMAIL_DAILY_LIMIT - 1 })).toEqual({ ok: true });
+    expect(checkLoginEmailLimits({ ...login, loginSentToday: LOGIN_EMAIL_DAILY_LIMIT })).toMatchObject({
+      ok: false,
+      status: 503,
+    });
+  });
+
+  it('also stops when the shared 50-email budget is used', () => {
+    expect(checkLoginEmailLimits({ ...login, sentTodayGlobal: GLOBAL_DAILY_EMAIL_BUDGET })).toMatchObject({
+      ok: false,
+      status: 503,
+    });
+  });
+
+  it('treats failed counts (Infinity) as exhausted', () => {
+    expect(
+      checkLoginEmailLimits({
+        loginSentToday: Number.POSITIVE_INFINITY,
+        sentToAddressToday: Number.POSITIVE_INFINITY,
+        sentTodayGlobal: Number.POSITIVE_INFINITY,
+      }),
+    ).toMatchObject({ ok: false });
   });
 });

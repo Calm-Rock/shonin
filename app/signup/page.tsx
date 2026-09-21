@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { requestLoginLink } from "@/lib/request-login-link";
 
 type FormState = "idle" | "loading" | "success" | "error";
 
@@ -16,19 +16,12 @@ export default function SignupPage() {
     setState("loading");
     setError("");
 
-    const supabase = createSupabaseBrowserClient();
-    const { error: authError } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-
-    if (authError) {
-      setError(authError.message);
-      setState("error");
-    } else {
+    const result = await requestLoginLink(email);
+    if (result.ok) {
       setState("success");
+    } else {
+      setError(result.message);
+      setState("error");
     }
   }
 

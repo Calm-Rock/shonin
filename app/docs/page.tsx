@@ -11,11 +11,17 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { id: "overview", label: "Overview" },
+  { id: "quickstart", label: "Quickstart" },
   { id: "authentication", label: "Authentication" },
   { id: "create-approval", label: "Create Approval" },
   { id: "get-approval", label: "Get Approval" },
-  { id: "decide", label: "Decide" },
+  { id: "risk", label: "Risk Levels" },
+  { id: "create-decision", label: "Create Decision" },
+  { id: "get-decision", label: "Get Decision" },
+  { id: "webhooks", label: "Webhooks" },
+  { id: "how-decided", label: "How Decisions Work" },
   { id: "errors", label: "Errors" },
+  { id: "self-hosting", label: "Self-Hosting" },
 ];
 
 /* ─── Page ────────────────────────────────────────────────────────────── */
@@ -120,9 +126,9 @@ export default function DocsPage() {
           {/* ── Overview ── */}
           <Section id="overview" title="Overview">
             <p className="text-[#888] leading-relaxed">
-              Shonin is a human-in-the-loop approval API. Send an approval request to any email
-              address and wait for a human decision before your automation continues. No account
-              required for approvers — they just click a link.
+              Shonin is an open source, human-in-the-loop approval API. Send an approval request to
+              any email address and wait for a human decision before your automation continues.
+              Approvers need no account: they just click a link.
             </p>
             <InfoBox>
               <strong className="text-white">Base URL</strong>
@@ -134,16 +140,58 @@ export default function DocsPage() {
               <Code inline>/v1/decide/:token</Code> links in approval emails, which approvers open
               and which need no key.
             </p>
+            <p className="text-[#888] text-sm leading-relaxed">
+              Shonin is MIT licensed. Try the hosted demo at shonin.dev, or run your own copy (see{" "}
+              <button onClick={() => scrollTo("self-hosting")} className="text-white underline underline-offset-4">
+                Self-Hosting
+              </button>
+              ).
+            </p>
+          </Section>
+
+          {/* ── Quickstart ── */}
+          <Section id="quickstart" title="Quickstart">
+            <ol className="list-decimal pl-5 space-y-3 text-[#888] leading-relaxed">
+              <li>
+                Sign in with your email at{" "}
+                <a href="/login" className="text-white underline underline-offset-4">/login</a>. Your API key
+                is on your dashboard and is emailed to you.
+              </li>
+              <li>
+                Send an approval request. Use your own email as the approver: the hosted demo only
+                sends to your account email.
+              </li>
+            </ol>
+            <CodeBlock lang="bash" code={`curl -X POST https://shonin.dev/api/v1/approvals \\
+  -H "Authorization: Bearer sk_your_api_key" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "action": "Deploy to production",
+    "approver_email": "you@example.com"
+  }'`} />
+            <ol start={3} className="list-decimal pl-5 space-y-3 text-[#888] leading-relaxed">
+              <li>
+                Open the email and click Approve, then read the result with the <Code inline>id</Code>{" "}
+                from the response:
+              </li>
+            </ol>
+            <CodeBlock lang="bash" code={`curl https://shonin.dev/api/v1/approvals/APPROVAL_ID \\
+  -H "Authorization: Bearer sk_your_api_key"`} />
+            <p className="text-[#888] text-sm leading-relaxed">
+              The <Code inline>status</Code> field changes from <Code inline>pending</Code> to{" "}
+              <Code inline>approved</Code> or <Code inline>rejected</Code>.
+            </p>
           </Section>
 
           {/* ── Authentication ── */}
           <Section id="authentication" title="Authentication">
             <p className="text-[#888] leading-relaxed">
               Pass your API key as a Bearer token in the{" "}
-              <Code inline>Authorization</Code> header on every request.
+              <Code inline>Authorization</Code> header on every request. Sign in at{" "}
+              <a href="/login" className="text-white underline underline-offset-4">/login</a> to see your key.
             </p>
             <CodeBlock lang="bash" code={`curl -H "Authorization: Bearer sk_your_api_key" \\
-  https://shonin.dev/api/v1/approvals`} />
+  https://shonin.dev/api/v1/approvals/APPROVAL_ID`} />
             <InfoBox variant="warn">
               Keep your API key secret. Do not expose it in client-side code or public repositories.
             </InfoBox>
@@ -158,8 +206,8 @@ export default function DocsPage() {
           >
             <p className="text-[#888] leading-relaxed">
               Creates a new approval request and sends an email to the approver with Approve and
-              Reject buttons. Returns immediately — the approval will be in{" "}
-              <Code inline>pending</Code> status until the approver decides.
+              Reject buttons. Returns immediately. The approval stays{" "}
+              <Code inline>pending</Code> until the approver decides.
             </p>
 
             <h3 className="text-sm font-semibold text-white mt-6 mb-3">Request body</h3>
@@ -170,6 +218,9 @@ export default function DocsPage() {
                 { name: "context", type: "string", required: false, description: "Optional extra context displayed in the email below the action." },
                 { name: "webhook_url", type: "string", required: false, description: "Public https URL to POST the decision to when the approver clicks Approve or Reject. Private and reserved addresses are rejected with a 400." },
                 { name: "expires_in_hours", type: "number", required: false, description: "How many hours before the approval link expires. Defaults to 24." },
+                { name: "command_type", type: "string", required: false, description: "What kind of action this is, for example git_push_force or sql_drop. Drives the risk banner in the email. Inferred from action when omitted. See Risk Levels." },
+                { name: "files", type: "array", required: false, description: "Files the action touches, for example [{ \"path\": \"app/route.ts\", \"status\": \"modified\" }]. Status is modified, added, deleted or renamed." },
+                { name: "diff", type: "string", required: false, description: "A diff to show the approver. Truncated at 50KB." },
               ]}
             />
 
@@ -220,11 +271,18 @@ export default function DocsPage() {
                 <h3 className="text-sm font-semibold text-white mb-3">Example response <span className="text-[#3d9e5f] text-xs font-normal ml-1">200 OK</span></h3>
                 <CodeBlock lang="json" code={`{
   "id": "a1b2c3d4-...",
-  "action": "Deploy to production",
+  "action": "git push origin main --force",
+  "context": "Remote diverged after a rebase",
   "approver_email": "cto@company.com",
-  "context": "PR #247 merged, 3 files changed",
   "status": "approved",
-  "webhook_url": "https://yourapp.com/webhooks/shonin",
+  "webhook_url": null,
+  "command_type": "git_push_force",
+  "risk_level": "DESTRUCTIVE",
+  "risk_bullets": [
+    "Will overwrite upstream commits",
+    "Bypasses branch protection rules"
+  ],
+  "files": [{ "path": "app/route.ts", "status": "modified" }],
   "expires_at": "2026-03-22T18:00:00Z",
   "decided_at": "2026-03-21T18:45:00Z",
   "created_at": "2026-03-21T18:00:00Z"
@@ -233,61 +291,154 @@ export default function DocsPage() {
             </div>
           </Section>
 
-          {/* ── Decide ── */}
+          {/* ── Risk levels ── */}
+          <Section id="risk" title="Risk Levels">
+            <p className="text-[#888] leading-relaxed">
+              When an approval has a <Code inline>command_type</Code>, the email opens with a risk
+              banner so the approver can see how reversible the action is. If you leave{" "}
+              <Code inline>command_type</Code> out, Shonin infers it from <Code inline>action</Code>{" "}
+              when it recognizes commands such as <Code inline>git push --force</Code>,{" "}
+              <Code inline>git reset --hard</Code>, <Code inline>rm</Code>,{" "}
+              <Code inline>drop table</Code> or a migration.
+            </p>
+            <DataTable
+              headers={["command_type", "Level", "Shown to the approver"]}
+              rows={[
+                ["git_push_force", "DESTRUCTIVE", "Will overwrite upstream commits. Bypasses branch protection rules."],
+                ["git_reset_hard", "DESTRUCTIVE", "Local changes will be permanently lost."],
+                ["rm", "DESTRUCTIVE", "Files cannot be recovered from trash."],
+                ["sql_drop", "DESTRUCTIVE", "Table data is permanently deleted."],
+                ["sql_migration", "HIGH", "Schema changes may be irreversible."],
+                ["git_push", "LOW", "Reversible via git revert."],
+                ["git_commit", "LOW", "Reversible via git reset."],
+                ["anything else", "LOW", "No banner text."],
+              ]}
+            />
+            <InfoBox>
+              DESTRUCTIVE approvals add a 3 second countdown on the confirm page before the Approve
+              button unlocks.
+            </InfoBox>
+          </Section>
+
+          {/* ── Create Decision ── */}
           <Section
-            id="decide"
-            title="Decide"
+            id="create-decision"
+            title="Create Decision"
             badge={{ label: "POST", color: "blue" }}
-            endpoint="/v1/decide/:token"
+            endpoint="/v1/decisions"
           >
             <p className="text-[#888] leading-relaxed">
-              Records the approver&apos;s decision and returns an HTML confirmation page. It needs no
-              API key. The links in the approval email open a confirm page first (a GET only ever
-              redirects there and changes nothing), and the decision is recorded when the approver
-              confirms, which sends a POST to this endpoint. That is why a mail scanner opening
-              every link in an email can never decide for the approver.
+              Ask a multiple-choice question instead of a yes or no. The respondent gets an email
+              with one button per option and picks one.
             </p>
-            <InfoBox>
-              Each approval has an approve token and a reject token. They exist only in the email
-              sent to the approver and are never returned by the API, so the code that requested an
-              approval cannot approve it itself. Tokens are single-use.
-            </InfoBox>
 
-            <h3 className="text-sm font-semibold text-white mt-6 mb-3">Path parameter</h3>
+            <h3 className="text-sm font-semibold text-white mt-6 mb-3">Request body</h3>
             <ParamTable
               params={[
-                { name: "token", type: "string", required: true, description: "The approve or reject token from the email link. Determines the decision recorded." },
+                { name: "question", type: "string", required: true, description: "The question to ask." },
+                { name: "options", type: "array", required: true, description: "2 to 10 options, each { \"key\": \"prod\", \"label\": \"Production\" }. A key is up to 16 characters and a label up to 200." },
+                { name: "respondent_email", type: "string", required: true, description: "The email address of the person who will answer." },
+                { name: "context", type: "string", required: false, description: "Optional extra context shown in the email." },
+                { name: "webhook_url", type: "string", required: false, description: "Public https URL to POST the answer to." },
+                { name: "expires_in_hours", type: "number", required: false, description: "How many hours before the links expire. Defaults to 24." },
               ]}
             />
 
-            <h3 className="text-sm font-semibold text-white mt-6 mb-3">Behavior</h3>
-            <div className="space-y-2">
-              {[
-                ["GET request", "Redirects to the confirm page. Changes nothing."],
-                ["POST with the approve token", "Records status = approved, fires webhook if set, returns HTML success page."],
-                ["POST with the reject token", "Records status = rejected, fires webhook if set, returns HTML rejection page."],
-                ["Approval already decided", "Returns an HTML page indicating it was already acted on. No change to state."],
-                ["Approval expired", "Returns an HTML expired page. No change to state."],
-                ["Token not found", "Returns an HTML invalid link page."],
-              ].map(([condition, result]) => (
-                <div key={condition} className="flex gap-3 text-sm bg-[#111] rounded-lg px-4 py-3 border border-white/[0.06]">
-                  <span className="text-[#aaa] shrink-0 w-48">{condition}</span>
-                  <span className="text-[#666]">{result}</span>
-                </div>
-              ))}
+            <div className="grid sm:grid-cols-2 gap-4 mt-6">
+              <div>
+                <h3 className="text-sm font-semibold text-white mb-3">Example request</h3>
+                <CodeBlock lang="bash" code={`curl -X POST https://shonin.dev/api/v1/decisions \\
+  -H "Authorization: Bearer sk_your_api_key" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "question": "Which environment should we deploy to?",
+    "options": [
+      { "key": "staging", "label": "Staging" },
+      { "key": "prod", "label": "Production" }
+    ],
+    "respondent_email": "cto@company.com"
+  }'`} />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-white mb-3">Example response <span className="text-[#3d9e5f] text-xs font-normal ml-1">201 Created</span></h3>
+                <CodeBlock lang="json" code={`{
+  "id": "e5f6a7b8-...",
+  "status": "pending",
+  "created_at": "2026-03-21T18:00:00Z",
+  "expires_at": "2026-03-22T18:00:00Z"
+}`} />
+              </div>
             </div>
+          </Section>
 
-            {/* Webhook */}
-            <h3 className="text-sm font-semibold text-white mt-8 mb-3">Webhook payload</h3>
-            <p className="text-[#888] text-sm mb-3">
-              If <Code inline>webhook_url</Code> was set on the approval, Shonin will POST the
-              following JSON immediately after the decision is recorded.
+          {/* ── Get Decision ── */}
+          <Section
+            id="get-decision"
+            title="Get Decision"
+            badge={{ label: "GET", color: "green" }}
+            endpoint="/v1/decisions/:id"
+          >
+            <p className="text-[#888] leading-relaxed">
+              Returns the current state of a decision. <Code inline>status</Code> is{" "}
+              <Code inline>pending</Code> or <Code inline>decided</Code>, and{" "}
+              <Code inline>chosen_key</Code> holds the key of the option that was picked.
             </p>
             <CodeBlock lang="json" code={`{
+  "id": "e5f6a7b8-...",
+  "status": "decided",
+  "chosen_key": "prod",
+  "decided_at": "2026-03-21T18:45:00Z",
+  "expires_at": "2026-03-22T18:00:00Z",
+  "created_at": "2026-03-21T18:00:00Z"
+}`} />
+          </Section>
+
+          {/* ── Webhooks ── */}
+          <Section id="webhooks" title="Webhooks">
+            <p className="text-[#888] leading-relaxed">
+              Set <Code inline>webhook_url</Code> on an approval or a decision and Shonin sends a
+              POST with a JSON body once the decision is recorded.
+            </p>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <h3 className="text-sm font-semibold text-white mb-3">Approval</h3>
+                <CodeBlock lang="json" code={`{
   "id": "a1b2c3d4-...",
   "status": "approved",
   "decided_at": "2026-03-21T18:45:00Z"
 }`} />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-white mb-3">Decision</h3>
+                <CodeBlock lang="json" code={`{
+  "id": "e5f6a7b8-...",
+  "status": "decided",
+  "chosen_key": "prod",
+  "decided_at": "2026-03-21T18:45:00Z"
+}`} />
+              </div>
+            </div>
+            <ul className="list-disc pl-5 space-y-2 text-sm text-[#888] leading-relaxed">
+              <li>The URL must be a public https address. Private and reserved addresses are rejected with a 400 when you create the request.</li>
+              <li>Shonin waits 5 seconds for a response, does not follow redirects, and sends each webhook once with no retries.</li>
+            </ul>
+            <InfoBox variant="warn">
+              Webhook payloads are not signed. Treat one as a signal and confirm the result with a GET
+              request before you act on it.
+            </InfoBox>
+          </Section>
+
+          {/* ── How decisions work ── */}
+          <Section id="how-decided" title="How Decisions Work">
+            <p className="text-[#888] leading-relaxed">
+              You never call the decide endpoint yourself. It sits behind the links in the email, and
+              it is built so the code that asks for approval cannot give it.
+            </p>
+            <ul className="list-disc pl-5 space-y-2 text-sm text-[#888] leading-relaxed">
+              <li>The approve and reject links exist only in the email to the approver. The API never returns them, so your code cannot approve its own request.</li>
+              <li>Opening a link never decides. It leads to a confirm page, and the decision is recorded only when the approver confirms, which sends a POST. Mail scanners and link previews that open every link cannot decide.</li>
+              <li>Links are single-use and expire after 24 hours unless you set <Code inline>expires_in_hours</Code>.</li>
+            </ul>
           </Section>
 
           {/* ── Errors ── */}
@@ -310,19 +461,16 @@ export default function DocsPage() {
                 </thead>
                 <tbody className="divide-y divide-white/[0.04]">
                   {[
+                    ["400", "Validation error", "A required field is missing, a value has the wrong type, or webhook_url is not a public https address."],
                     ["401", "Invalid API key", "Missing or incorrect Authorization header."],
-                    ["400", "Validation error", "Required field missing or value is the wrong type."],
-                    ["404", "Not found", "Approval ID does not exist or belongs to a different account."],
-                    ["410", "Expired", "The approval link has passed its expiry time."],
-                    ["409", "Already decided", "An approve or reject action has already been recorded."],
+                    ["404", "Not found", "The ID does not exist or belongs to a different account."],
                   ].map(([code, meaning, cause]) => (
                     <tr key={code} className="hover:bg-white/[0.02] transition-colors">
                       <td className="px-4 py-3">
                         <span className={`font-mono text-xs font-semibold ${
-                          code === "401" || code === "409" ? "text-red-400" :
+                          code === "401" ? "text-red-400" :
                           code === "400" ? "text-yellow-400" :
-                          code === "404" ? "text-orange-400" :
-                          "text-[#888]"
+                          "text-orange-400"
                         }`}>{code}</span>
                       </td>
                       <td className="px-4 py-3 text-[#ccc] text-sm">{meaning}</td>
@@ -332,6 +480,48 @@ export default function DocsPage() {
                 </tbody>
               </table>
             </div>
+
+            <h3 className="text-sm font-semibold text-white mt-8 mb-3">Hosted demo only</h3>
+            <p className="text-[#888] text-sm leading-relaxed mb-3">
+              The hosted demo is capped to protect a shared email allowance. Self-hosted instances do
+              not apply these limits.
+            </p>
+            <DataTable
+              headers={["Status", "Meaning", "Common cause"]}
+              rows={[
+                ["403", "Recipient not allowed", "approver_email or respondent_email is not the email on your account."],
+                ["429", "Daily limit reached", "Your key has used its requests for the day."],
+                ["503", "Demo budget used", "The shared email budget for today is used up. Try again tomorrow."],
+              ]}
+            />
+          </Section>
+
+          {/* ── Self-hosting ── */}
+          <Section id="self-hosting" title="Self-Hosting">
+            <p className="text-[#888] leading-relaxed">
+              Shonin is MIT licensed and runs on Next.js, Supabase and Resend. A self-hosted
+              instance has no request limits, and it serves this same documentation at{" "}
+              <Code inline>/docs</Code>.
+            </p>
+            <ol className="list-decimal pl-5 space-y-2 text-sm text-[#888] leading-relaxed">
+              <li>Clone the repository and run <Code inline>npm install</Code>.</li>
+              <li>Create a Supabase project and run <Code inline>supabase/schema.sql</Code> in its SQL editor.</li>
+              <li>Copy <Code inline>.env.example</Code> to <Code inline>.env.local</Code> and fill in your Supabase and Resend values. Set <Code inline>EMAIL_FROM_DOMAIN</Code> to your verified Resend domain.</li>
+              <li>In Supabase, set your app URL as the Site URL and as a redirect URL so login works.</li>
+              <li>Insert your first API key, then run <Code inline>npm run dev</Code>.</li>
+            </ol>
+            <p className="text-[#888] text-sm leading-relaxed">
+              The full steps, including the SQL for your first key, are in the README on{" "}
+              <a
+                href="https://github.com/Calm-Rock/shonin"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white underline underline-offset-4"
+              >
+                GitHub
+              </a>
+              .
+            </p>
           </Section>
         </main>
       </div>
@@ -517,6 +707,36 @@ function ParamTable({ params }: { params: Param[] }) {
                 )}
               </td>
               <td className="px-4 py-3 text-[#666] leading-relaxed">{p.description}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/* ─── Data table ──────────────────────────────────────────────────────── */
+function DataTable({ headers, rows }: { headers: string[]; rows: string[][] }) {
+  return (
+    <div className="rounded-lg border border-white/[0.06] overflow-hidden">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-white/[0.06] bg-[#111]">
+            {headers.map((h) => (
+              <th key={h} className="text-left px-4 py-3 text-xs font-medium text-[#555] uppercase tracking-wider">
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-white/[0.04]">
+          {rows.map((row) => (
+            <tr key={row[0]} className="hover:bg-white/[0.02] transition-colors">
+              {row.map((cell, i) => (
+                <td key={i} className={`px-4 py-3 ${i === 0 ? "font-mono text-[13px] text-[#82aaff]" : "text-[#666] text-sm"}`}>
+                  {cell}
+                </td>
+              ))}
             </tr>
           ))}
         </tbody>

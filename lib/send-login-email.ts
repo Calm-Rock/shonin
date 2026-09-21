@@ -1,10 +1,11 @@
 import { Resend } from 'resend';
+import { fromAddress } from '@/lib/email-from';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function sendLoginEmail({ to, loginUrl }: { to: string; loginUrl: string }) {
   return resend.emails.send({
-    from: 'login@shonin.dev',
+    from: fromAddress('login'),
     to,
     subject: 'Your Shonin login link',
     html: `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#111">

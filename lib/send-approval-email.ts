@@ -1,5 +1,6 @@
 import { Resend } from 'resend';
 import { ApprovalEmail } from '@/emails/ApprovalEmail';
+import { fromAddress } from '@/lib/email-from';
 import type { FileChange, RiskLevel } from '@/lib/risk';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -45,7 +46,7 @@ export async function sendApprovalEmail({
   const rejectUrl = `${APP_URL}/api/v1/decide/${rejectToken}`;
 
   return resend.emails.send({
-    from: 'approvals@shonin.dev',
+    from: fromAddress('approvals'),
     to,
     subject: emailSubject(riskLevel, action),
     react: ApprovalEmail({

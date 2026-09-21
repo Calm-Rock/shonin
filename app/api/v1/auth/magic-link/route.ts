@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { supabaseAdmin } from '@/lib/supabase';
 import { checkLoginEmailLimits } from '@/lib/demo-limits';
 import { loginEmailsToday } from '@/lib/email-budget';
+import { isDemoMode } from '@/lib/demo-mode';
 import { sendLoginEmail } from '@/lib/send-login-email';
 
 const bodySchema = z.object({ email: z.string().email() });
@@ -22,13 +23,15 @@ export async function POST(req: NextRequest) {
   }
   const email = parsed.data.email.trim().toLowerCase();
 
-  const logins = await loginEmailsToday(email);
-  const check = checkLoginEmailLimits({
-    loginSentToday: logins.total,
-    sentToAddressToday: logins.forAddress,
-  });
-  if (!check.ok) {
-    return NextResponse.json({ error: check.error }, { status: check.status });
+  if (isDemoMode()) {
+    const logins = await loginEmailsToday(email);
+    const check = checkLoginEmailLimits({
+      loginSentToday: logins.total,
+      sentToAddressToday: logins.forAddress,
+    });
+    if (!check.ok) {
+      return NextResponse.json({ error: check.error }, { status: check.status });
+    }
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? new URL(req.url).origin;

@@ -1,5 +1,6 @@
 import { Resend } from 'resend';
 import { WelcomeEmail } from '@/emails/WelcomeEmail';
+import { fromAddress } from '@/lib/email-from';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -13,7 +14,7 @@ interface SendWelcomeEmailParams {
 
 export async function sendWelcomeEmail({ to, name, apiKey }: SendWelcomeEmailParams) {
   return resend.emails.send({
-    from: 'hello@shonin.dev',
+    from: fromAddress('hello'),
     to,
     subject: 'Your Shonin API key',
     react: WelcomeEmail({

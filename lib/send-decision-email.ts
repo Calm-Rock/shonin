@@ -1,5 +1,6 @@
 import { Resend } from 'resend';
 import { DecisionEmail } from '@/emails/DecisionEmail';
+import { fromAddress } from '@/lib/email-from';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL;
@@ -28,7 +29,7 @@ export async function sendDecisionEmail({
   decisionId,
 }: SendDecisionEmailParams) {
   return resend.emails.send({
-    from: 'decisions@shonin.dev',
+    from: fromAddress('decisions'),
     to,
     subject: `Decision required: ${question}`,
     react: DecisionEmail({

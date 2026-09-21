@@ -34,7 +34,7 @@ function Nav() {
             href="/signup"
             className="text-sm bg-white text-black font-medium px-4 py-1.5 rounded-full hover:bg-white/90 transition-colors"
           >
-            Get Started
+            Try the demo
           </a>
         </nav>
       </div>
@@ -46,11 +46,6 @@ function Nav() {
 function Hero() {
   return (
     <section className="max-w-6xl mx-auto px-6 pt-24 pb-20 flex flex-col items-center text-center">
-      <div className="inline-flex items-center gap-2 bg-white/[0.05] border border-white/[0.08] rounded-full px-3 py-1 mb-8">
-        <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-        <span className="text-xs text-[#888]">Now in beta</span>
-      </div>
-
       <h1 className="text-5xl sm:text-6xl font-bold tracking-tight leading-[1.1] max-w-3xl mb-6">
         Human approval,{" "}
         <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-white/50">
@@ -68,7 +63,7 @@ function Hero() {
           href="/signup"
           className="bg-white text-black font-medium text-sm px-5 py-2.5 rounded-full hover:bg-white/90 transition-colors"
         >
-          Get Started
+          Try the demo
         </a>
         <a
           href="/docs"
@@ -414,7 +409,7 @@ function Trust() {
               href="/signup"
               className="bg-white text-black font-medium text-sm px-5 py-2.5 rounded-full hover:bg-white/90 transition-colors"
             >
-              Get Started
+              Try the demo
             </a>
             <a
               href="https://github.com/Calm-Rock/shonin"
@@ -422,7 +417,7 @@ function Trust() {
               rel="noopener noreferrer"
               className="text-sm text-white border border-white/[0.15] px-5 py-2.5 rounded-full hover:bg-white/[0.06] transition-colors"
             >
-              View on GitHub
+              Self-host it on GitHub
             </a>
           </div>
         </div>

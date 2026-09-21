@@ -71,7 +71,7 @@ export default function DocsPage() {
               Dashboard
             </a>
             <a href="/signup" className="text-sm bg-white text-black font-medium px-4 py-1.5 rounded-full hover:bg-white/90 transition-colors">
-              Get Started
+              Try the demo
             </a>
           </div>
         </div>

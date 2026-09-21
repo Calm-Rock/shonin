@@ -54,12 +54,21 @@ export default function ConfirmClient({
   const approveDisabled = countdown > 0;
   const approveLabel = countdown > 0 ? `Confirm in ${countdown}…` : 'Confirm Approve';
 
+  // The decision is a POST so that merely opening a link (mail scanners, previews) can never decide.
+  function submitDecision(token: string) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = `/api/v1/decide/${token}`;
+    document.body.appendChild(form);
+    form.submit();
+  }
+
   function handleApprove() {
-    window.location.href = `/api/v1/decide/${approveToken}`;
+    submitDecision(approveToken);
   }
 
   function handleReject() {
-    window.location.href = `/api/v1/decide/${rejectToken}`;
+    submitDecision(rejectToken);
   }
 
   return (

@@ -6,6 +6,7 @@ import { validateApiKey } from '@/lib/api-keys';
 import { checkDemoLimits, PER_KEY_DAILY_LIMIT } from '@/lib/demo-limits';
 import { emailsSentToday } from '@/lib/email-budget';
 import { sendApprovalEmail } from '@/lib/send-approval-email';
+import { checkWebhookUrl } from '@/lib/webhook-url';
 import { classifyRisk, inferCommandType } from '@/lib/risk';
 import type { FileChange } from '@/lib/risk';
 
@@ -18,7 +19,11 @@ const bodySchema = z.object({
   action: z.string().min(1),
   approver_email: z.string().email(),
   context: z.string().optional(),
-  webhook_url: z.string().url().optional(),
+  webhook_url: z
+    .string()
+    .url()
+    .refine((u) => checkWebhookUrl(u).ok, { message: 'webhook_url must be a public https URL' })
+    .optional(),
   expires_in_hours: z.number().positive().default(24),
   command_type: z.string().optional(),
   files: z.array(fileChangeSchema).optional(),
@@ -121,7 +126,7 @@ export async function POST(req: NextRequest) {
       risk_bullets,
       token_used: false,
     })
-    .select('id, status, approve_token, reject_token, created_at, expires_at')
+    .select('id, status, created_at, expires_at')
     .single();
 
   if (error) {

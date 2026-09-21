@@ -6,6 +6,7 @@ import { validateApiKey } from '@/lib/api-keys';
 import { checkDemoLimits, PER_KEY_DAILY_LIMIT } from '@/lib/demo-limits';
 import { emailsSentToday } from '@/lib/email-budget';
 import { sendDecisionEmail } from '@/lib/send-decision-email';
+import { checkWebhookUrl } from '@/lib/webhook-url';
 
 const optionSchema = z.object({
   key: z.string().min(1).max(16),
@@ -17,7 +18,11 @@ const bodySchema = z.object({
   options: z.array(optionSchema).min(2).max(10),
   respondent_email: z.string().email(),
   context: z.string().optional(),
-  webhook_url: z.string().url().optional(),
+  webhook_url: z
+    .string()
+    .url()
+    .refine((u) => checkWebhookUrl(u).ok, { message: 'webhook_url must be a public https URL' })
+    .optional(),
   expires_in_hours: z.number().positive().default(24),
 });
 

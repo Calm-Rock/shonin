@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { postWebhook } from '@/lib/send-webhook';
 
 function escapeHtml(str: string): string {
   return str
@@ -60,7 +61,17 @@ function htmlPage(title: string, emoji: string, message: string, color: string):
 
 type DecisionOption = { key: string; label: string; token: string };
 
+// A GET must never change state: mail scanners and link previews open every link in an email.
+// Email links land here and are sent to the confirm page, which POSTs the answer.
 export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ optionToken: string }> }
+) {
+  const { optionToken } = await params;
+  return NextResponse.redirect(new URL(`/decisions/confirm?token=${encodeURIComponent(optionToken)}`, req.url));
+}
+
+export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ optionToken: string }> }
 ) {
@@ -147,15 +158,11 @@ export async function GET(
   // Fire webhook if present
   if (decision.webhook_url) {
     try {
-      await fetch(decision.webhook_url as string, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: decision.id,
-          status: 'decided',
-          chosen_key: chosen.key,
-          decided_at: now,
-        }),
+      await postWebhook(decision.webhook_url as string, {
+        id: decision.id,
+        status: 'decided',
+        chosen_key: chosen.key,
+        decided_at: now,
       });
     } catch (webhookErr) {
       console.error('Webhook error:', webhookErr);

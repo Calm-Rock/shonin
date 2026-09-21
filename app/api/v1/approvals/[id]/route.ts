@@ -34,7 +34,9 @@ export async function GET(
 
   const { data, error } = await supabaseAdmin
     .from('approvals')
-    .select('*')
+    .select(
+      'id, action, context, approver_email, status, webhook_url, expires_at, decided_at, created_at, command_type, files, diff, risk_level, risk_bullets'
+    )
     .eq('id', id)
     .eq('account_id', apiKey)
     .maybeSingle();

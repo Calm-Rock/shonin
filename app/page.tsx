@@ -5,8 +5,10 @@ export default function Home() {
     <div className="bg-[#0a0a0a] text-white min-h-screen">
       <Nav />
       <Hero />
+      <Why />
       <CodeSection />
       <HowItWorks />
+      <Trust />
       <Footer />
     </div>
   );
@@ -135,7 +137,7 @@ function MockEmail() {
 
             {/* Why */}
             <div className="bg-[#f9fafb] rounded-md p-2.5 mb-3">
-              <p className="text-[9px] font-semibold text-[#9ca3af] uppercase tracking-widest mb-1">Why Claude wants this</p>
+              <p className="text-[9px] font-semibold text-[#9ca3af] uppercase tracking-widest mb-1">Why the agent wants this</p>
               <p className="text-[10px] text-[#6b7280]">The remote has diverged after a rebase. Force push is needed to sync the branch.</p>
             </div>
 
@@ -178,6 +180,32 @@ function MockEmail() {
   );
 }
 
+/* ─── Why ─────────────────────────────────────────────────────────────── */
+function Why() {
+  return (
+    <section className="border-t border-white/[0.06] py-24">
+      <div className="max-w-3xl mx-auto px-6 text-center">
+        <p className="text-xs font-semibold text-[#555] uppercase tracking-widest mb-6">Why it exists</p>
+        <p className="text-2xl sm:text-3xl font-semibold tracking-tight leading-snug">
+          In July 2025, a developer told his AI agent eleven times, in ALL CAPS, not to touch production. It deleted
+          the database anyway.
+        </p>
+        <p className="mt-6 text-lg text-[#888] max-w-xl mx-auto leading-relaxed">
+          Instructions are only suggestions to an agent. A human gate that lives outside the model is not.
+        </p>
+        <a
+          href="https://dev.to/cheeto/email-as-the-human-in-the-loop-for-ai-agents-12k3"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block mt-8 text-sm text-[#888] hover:text-white transition-colors underline underline-offset-4 decoration-white/20"
+        >
+          Read the full story
+        </a>
+      </div>
+    </section>
+  );
+}
+
 /* ─── Code Section ────────────────────────────────────────────────────── */
 function CodeSection() {
   return (
@@ -206,29 +234,47 @@ function CodeSection() {
           <pre className="px-6 py-6 text-sm leading-7 overflow-x-auto font-mono">
             <code>
               <Line>
-                <Kw>const</Kw> <Var>approval</Var> <Op>=</Op> <Kw>await</Kw> <Var>shonin</Var><Op>.</Op><Fn>request</Fn><Op>({"{"}</Op>
+                <Kw>const</Kw> <Var>res</Var> <Op>=</Op> <Kw>await</Kw> <Fn>fetch</Fn><Op>(</Op><Str>&quot;https://shonin.dev/api/v1/approvals&quot;</Str><Op>, {"{"}</Op>
               </Line>
               <Line indent={1}>
+                <Prop>method</Prop><Op>:</Op> <Str>&quot;POST&quot;</Str><Op>,</Op>
+              </Line>
+              <Line indent={1}>
+                <Prop>headers</Prop><Op>: {"{"}</Op>
+              </Line>
+              <Line indent={2}>
+                <Prop>Authorization</Prop><Op>:</Op> <Str>&quot;Bearer YOUR_API_KEY&quot;</Str><Op>,</Op>
+              </Line>
+              <Line indent={2}>
+                <Str>&quot;Content-Type&quot;</Str><Op>:</Op> <Str>&quot;application/json&quot;</Str><Op>,</Op>
+              </Line>
+              <Line indent={1}>
+                <Op>{"},"}</Op>
+              </Line>
+              <Line indent={1}>
+                <Prop>body</Prop><Op>:</Op> <Var>JSON</Var><Op>.</Op><Fn>stringify</Fn><Op>({"{"}</Op>
+              </Line>
+              <Line indent={2}>
                 <Prop>action</Prop><Op>:</Op> <Str>&quot;Deploy to production&quot;</Str><Op>,</Op>
               </Line>
-              <Line indent={1}>
-                <Prop>approver</Prop><Op>:</Op> <Str>&quot;cto@company.com&quot;</Str><Op>,</Op>
+              <Line indent={2}>
+                <Prop>approver_email</Prop><Op>:</Op> <Str>&quot;cto@company.com&quot;</Str><Op>,</Op>
+              </Line>
+              <Line indent={2}>
+                <Prop>context</Prop><Op>:</Op> <Str>&quot;PR #247 merged, 3 files changed&quot;</Str><Op>,</Op>
               </Line>
               <Line indent={1}>
-                <Prop>context</Prop><Op>:</Op> <Str>&quot;PR #247 merged, 3 files changed&quot;</Str>
+                <Op>{"}),"}</Op>
               </Line>
               <Line>
-                <Op>{"}"}</Op><Op>)</Op>
+                <Op>{"});"}</Op>
               </Line>
               <Line>&nbsp;</Line>
               <Line>
-                <Kw>if</Kw> <Op>(</Op><Var>approval</Var><Op>.</Op><Prop>status</Prop> <Op>===</Op> <Str>&quot;approved&quot;</Str><Op>) {"{"}</Op>
-              </Line>
-              <Line indent={1}>
-                <Kw>await</Kw> <Fn>deployToProduction</Fn><Op>()</Op>
+                <Kw>const</Kw> <Op>{"{"}</Op> <Var>id</Var> <Op>{"}"}</Op> <Op>=</Op> <Kw>await</Kw> <Var>res</Var><Op>.</Op><Fn>json</Fn><Op>();</Op>
               </Line>
               <Line>
-                <Op>{"}"}</Op>
+                <Cm>{"// Then poll GET /api/v1/approvals/:id, or pass a webhook_url"}</Cm>
               </Line>
             </code>
           </pre>
@@ -260,7 +306,10 @@ function Line({ children, indent = 0 }: { children: React.ReactNode; indent?: nu
   );
 }
 const Kw = ({ children }: { children: React.ReactNode }) => (
-  <span className="text-[#c792ea]">{children} </span>
+  <span className="text-[#c792ea]">{children}</span>
+);
+const Cm = ({ children }: { children: React.ReactNode }) => (
+  <span className="text-[#5c6773]">{children}</span>
 );
 const Var = ({ children }: { children: React.ReactNode }) => (
   <span className="text-[#82aaff]">{children}</span>
@@ -316,6 +365,66 @@ function HowItWorks() {
               <p className="text-sm text-[#666] leading-relaxed">{step.body}</p>
             </div>
           ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Trust + closing call to action ──────────────────────────────────── */
+const trust = [
+  {
+    title: "The agent cannot approve itself",
+    body: "The approve and reject links go only to the person you name. The API never hands them back to your code.",
+  },
+  {
+    title: "Opening a link decides nothing",
+    body: "Mail scanners and previews open every link in an email. A decision takes one deliberate click on a confirm page.",
+  },
+  {
+    title: "Open source, self-hostable",
+    body: "MIT licensed. Run it on your own Supabase and Resend, with no limits and your data in your hands.",
+  },
+];
+
+function Trust() {
+  return (
+    <section className="bg-[#0a0a0a] py-24">
+      <div className="max-w-5xl mx-auto px-6">
+        <p className="text-xs font-semibold text-[#555] uppercase tracking-widest text-center mb-3">
+          Built to be trusted
+        </p>
+        <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-center mb-14">
+          A gate the agent cannot talk its way past
+        </h2>
+
+        <div className="grid sm:grid-cols-3 gap-8 mb-20">
+          {trust.map((item) => (
+            <div key={item.title} className="flex flex-col gap-3">
+              <h3 className="text-[15px] font-semibold text-white">{item.title}</h3>
+              <p className="text-sm text-[#888] leading-relaxed">{item.body}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="text-center">
+          <p className="text-2xl font-semibold tracking-tight mb-6">Put a human in the loop in two minutes.</p>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <a
+              href="/signup"
+              className="bg-white text-black font-medium text-sm px-5 py-2.5 rounded-full hover:bg-white/90 transition-colors"
+            >
+              Get Started
+            </a>
+            <a
+              href="https://github.com/Calm-Rock/shonin"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-white border border-white/[0.15] px-5 py-2.5 rounded-full hover:bg-white/[0.06] transition-colors"
+            >
+              View on GitHub
+            </a>
+          </div>
         </div>
       </div>
     </section>

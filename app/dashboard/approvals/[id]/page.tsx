@@ -136,7 +136,7 @@ export default async function ApprovalDetailPage({
         {approval.context && (
           <div className="bg-[#111] border border-white/[0.08] rounded-xl p-5 mb-6">
             <p className="text-xs font-semibold text-[#555] uppercase tracking-widest mb-2">
-              Why Claude wants this
+              Why the agent wants this
             </p>
             <p className="text-sm text-[#ccc] whitespace-pre-wrap leading-relaxed">
               {approval.context}

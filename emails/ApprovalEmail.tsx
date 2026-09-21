@@ -113,10 +113,10 @@ export function ApprovalEmail({
             <Text style={commandText}>{action}</Text>
           </Section>
 
-          {/* Why Claude wants this */}
+          {/* Why the agent wants this */}
           {context && (
             <Section style={contextSection}>
-              <Text style={sectionLabel}>Why Claude wants this</Text>
+              <Text style={sectionLabel}>Why the agent wants this</Text>
               <Text style={contextText}>{context}</Text>
             </Section>
           )}

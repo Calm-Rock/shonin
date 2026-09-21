@@ -194,7 +194,7 @@ function Why() {
           Instructions are only suggestions to an agent. A human gate that lives outside the model is not.
         </p>
         <a
-          href="https://dev.to/cheeto/email-as-the-human-in-the-loop-for-ai-agents-12k3"
+          href="https://cybernews.com/ai-news/replit-ai-vive-code-rogue/"
           target="_blank"
           rel="noopener noreferrer"
           className="inline-block mt-8 text-sm text-[#888] hover:text-white transition-colors underline underline-offset-4 decoration-white/20"

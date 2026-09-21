@@ -8,9 +8,14 @@ WHY="$2"
 CWD=$(pwd)
 GIT_BRANCH=$(git branch --show-current 2>/dev/null || echo "")
 
-API_KEY="${SHONIN_API_KEY:-test-api-key-123}"
-API_URL="${SHONIN_API_URL:-https://shonin.vercel.app/api/v1}"
-APPROVER="${SHONIN_APPROVER:-cheetoda0x@gmail.com}"
+API_KEY="${SHONIN_API_KEY:-}"
+API_URL="${SHONIN_API_URL:-https://shonin.dev/api/v1}"
+APPROVER="${SHONIN_APPROVER:-}"
+
+if [ -z "$API_KEY" ] || [ -z "$APPROVER" ]; then
+  echo "Set SHONIN_API_KEY and SHONIN_APPROVER first (see https://shonin.dev/docs)."
+  exit 1
+fi
 
 # ── Classify command type ─────────────────────────────────────────────────────
 classify_command() {
@@ -71,8 +76,10 @@ print(json.dumps(rows))
     FILES_JSON=$(python3 -c "import json; print(json.dumps([{'path': '$RM_TARGET', 'status': 'deleted'}]))" 2>/dev/null || echo "[]")
   fi
 
-  # Capture diff (50KB cap)
-  DIFF_CONTENT=$(timeout 5 git diff HEAD 2>/dev/null | head -c 51200 || echo "")
+  # A diff contains your code, so it is only sent when you opt in with SHONIN_SEND_DIFF=1 (50KB cap)
+  if [ "${SHONIN_SEND_DIFF:-0}" = "1" ]; then
+    DIFF_CONTENT=$(timeout 5 git diff HEAD 2>/dev/null | head -c 51200 || echo "")
+  fi
 fi
 
 echo "Requesting Shonin approval for: $COMMAND"

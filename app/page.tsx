@@ -60,16 +60,18 @@ function Hero() {
 
       <div className="flex items-center gap-3 mb-16">
         <a
-          href="/signup"
+          href="https://github.com/Calm-Rock/shonin"
+          target="_blank"
+          rel="noopener noreferrer"
           className="bg-white text-black font-medium text-sm px-5 py-2.5 rounded-full hover:bg-white/90 transition-colors"
         >
-          Try the demo
+          View on GitHub
         </a>
         <a
-          href="/docs"
+          href="/signup"
           className="text-sm text-[#888] hover:text-white transition-colors flex items-center gap-1.5"
         >
-          View Docs
+          Try the demo
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
           </svg>

@@ -5,25 +5,25 @@ const startOfUtcDay = () => new Date(new Date().setUTCHours(0, 0, 0, 0)).toISOSt
 const countSince = (table: string, column: string, since: string) =>
   supabaseAdmin.from(table).select('*', { count: 'exact', head: true }).gte(column, since);
 
-// Every route that sends email draws from one shared Resend quota, so count them all together.
+// Approvals, decisions and signup/welcome emails draw from one shared Resend budget, so count them together.
+// Login fallback emails have their own separate budget (see loginEmailsToday).
 export async function emailsSentToday(): Promise<number> {
   const since = startOfUtcDay();
 
-  const [approvals, decisions, keys, logins] = await Promise.all([
+  const [approvals, decisions, keys] = await Promise.all([
     countSince('approvals', 'created_at', since),
     countSince('decisions', 'created_at', since),
     // Welcome emails: new keys and key re-sends both bump updated_at.
     countSince('api_keys', 'updated_at', since),
-    countSince('login_emails', 'created_at', since),
   ]);
 
-  const failure = approvals.error ?? decisions.error ?? keys.error ?? logins.error;
+  const failure = approvals.error ?? decisions.error ?? keys.error;
   if (failure) {
     console.error('Email budget count failed:', failure);
     return Number.POSITIVE_INFINITY;
   }
 
-  return (approvals.count ?? 0) + (decisions.count ?? 0) + (keys.count ?? 0) + (logins.count ?? 0);
+  return (approvals.count ?? 0) + (decisions.count ?? 0) + (keys.count ?? 0);
 }
 
 export async function loginEmailsToday(email: string): Promise<{ total: number; forAddress: number }> {

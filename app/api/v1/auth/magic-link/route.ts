@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { supabaseAdmin } from '@/lib/supabase';
 import { checkLoginEmailLimits } from '@/lib/demo-limits';
-import { emailsSentToday, loginEmailsToday } from '@/lib/email-budget';
+import { loginEmailsToday } from '@/lib/email-budget';
 import { sendLoginEmail } from '@/lib/send-login-email';
 
 const bodySchema = z.object({ email: z.string().email() });
@@ -22,11 +22,10 @@ export async function POST(req: NextRequest) {
   }
   const email = parsed.data.email.trim().toLowerCase();
 
-  const [logins, sentTodayGlobal] = await Promise.all([loginEmailsToday(email), emailsSentToday()]);
+  const logins = await loginEmailsToday(email);
   const check = checkLoginEmailLimits({
     loginSentToday: logins.total,
     sentToAddressToday: logins.forAddress,
-    sentTodayGlobal,
   });
   if (!check.ok) {
     return NextResponse.json({ error: check.error }, { status: check.status });

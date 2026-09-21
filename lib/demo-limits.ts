@@ -41,13 +41,13 @@ export function checkDemoLimits(input: DemoCheckInput): DemoCheck {
 }
 
 // Login links go through Supabase's free built-in email first; only the overflow is sent via Resend, under these caps.
+// This budget is separate from the shared approvals budget above.
 export const LOGIN_EMAIL_DAILY_LIMIT = 10;
 export const LOGIN_EMAIL_PER_ADDRESS_DAILY_LIMIT = 2;
 
 export type LoginEmailCheckInput = {
   loginSentToday: number;
   sentToAddressToday: number;
-  sentTodayGlobal: number;
 };
 
 export function checkLoginEmailLimits(input: LoginEmailCheckInput): DemoCheck {
@@ -65,10 +65,6 @@ export function checkLoginEmailLimits(input: LoginEmailCheckInput): DemoCheck {
       status: 503,
       error: "Today's login emails are used up. Try again tomorrow, or self-host shonin.",
     };
-  }
-
-  if (input.sentTodayGlobal >= GLOBAL_DAILY_EMAIL_BUDGET) {
-    return { ok: false, status: 503, error: BUDGET_EXHAUSTED_MESSAGE };
   }
 
   return { ok: true };

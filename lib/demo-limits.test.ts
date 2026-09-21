@@ -68,7 +68,7 @@ describe('checkDemoLimits', () => {
 });
 
 describe('checkLoginEmailLimits', () => {
-  const login = { loginSentToday: 0, sentToAddressToday: 0, sentTodayGlobal: 0 };
+  const login = { loginSentToday: 0, sentToAddressToday: 0 };
 
   it('allows a login email when nothing has been sent', () => {
     expect(checkLoginEmailLimits(login)).toEqual({ ok: true });
@@ -91,11 +91,8 @@ describe('checkLoginEmailLimits', () => {
     });
   });
 
-  it('also stops when the shared 50-email budget is used', () => {
-    expect(checkLoginEmailLimits({ ...login, sentTodayGlobal: GLOBAL_DAILY_EMAIL_BUDGET })).toMatchObject({
-      ok: false,
-      status: 503,
-    });
+  it('is not affected by the shared approvals budget being used up', () => {
+    expect(checkLoginEmailLimits({ ...login, loginSentToday: 3 })).toEqual({ ok: true });
   });
 
   it('treats failed counts (Infinity) as exhausted', () => {
@@ -103,7 +100,6 @@ describe('checkLoginEmailLimits', () => {
       checkLoginEmailLimits({
         loginSentToday: Number.POSITIVE_INFINITY,
         sentToAddressToday: Number.POSITIVE_INFINITY,
-        sentTodayGlobal: Number.POSITIVE_INFINITY,
       }),
     ).toMatchObject({ ok: false });
   });

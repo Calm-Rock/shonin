@@ -54,8 +54,8 @@ function Hero() {
       </h1>
 
       <p className="text-lg text-[#888] max-w-xl leading-relaxed mb-10">
-        Add a human checkpoint to any automation, AI agent, or script in minutes.
-        One API call sends the approval email. Your code waits for the decision.
+        An open source API that adds a human checkpoint to any automation, AI agent, or script.
+        One API call sends the approval email, and your code waits for the decision. Self-host it or try the demo.
       </p>
 
       <div className="flex items-center gap-3 mb-16">

@@ -1,19 +1,26 @@
-# Shonin
+<h1 align="center">Shonin</h1>
+
+<p align="center">
+  <a href="https://nextjs.org"><img src="https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" alt="Next.js" /></a>
+  <a href="https://supabase.com"><img src="https://img.shields.io/badge/Supabase-3FCF8E?style=for-the-badge&logo=supabase&logoColor=white" alt="Supabase" /></a>
+  <a href="https://resend.com"><img src="https://img.shields.io/badge/Resend-000000?style=for-the-badge&logo=resend&logoColor=white" alt="Resend" /></a>
+</p>
 
 **Human-in-the-loop approval API for AI agents and automations.**
 
-Shonin lets you add human checkpoints to any automation or AI agent with a single API call. Send an approval request to any email address — the approver clicks a button, you get a decision. No account required for approvers.
+Add a human checkpoint to any automation or AI agent with one API call. Shonin emails the approver an Approve and Reject choice, and you get the decision back by polling or by webhook. Approvers need no account.
+
+Try the hosted demo at **[shonin.dev](https://shonin.dev)**, or self-host it (see below).
 
 ---
 
-## How It Works
+## How it works
 
-1. **Call the API** — POST to `/api/v1/approvals` with an action description and approver email
-2. **Email is sent** — Approver receives a clean email with Approve / Reject buttons
-3. **Poll or webhook** — Check status via GET, or receive the decision at your webhook URL
+1. **Call the API.** POST to `/api/v1/approvals` with an action and the approver's email.
+2. **Email is sent.** The approver gets a clear email with a risk summary and Approve / Reject buttons.
+3. **Poll or webhook.** Check the status with GET, or receive the decision at your webhook URL.
 
 ```typescript
-// Request approval
 const res = await fetch("https://shonin.dev/api/v1/approvals", {
   method: "POST",
   headers: {
@@ -23,28 +30,44 @@ const res = await fetch("https://shonin.dev/api/v1/approvals", {
   body: JSON.stringify({
     action: "Transfer $4,200 to vendor account ending in 9021",
     approver_email: "finance@yourcompany.com",
-    context: "Quarterly software license renewal — see invoice #INV-2024-441",
+    context: "Quarterly software license renewal, invoice #INV-2024-441",
     webhook_url: "https://yourapp.com/webhooks/shonin",
   }),
 });
 
 const { id } = await res.json();
 
-// Poll for decision
-const status = await fetch(`https://shonin.dev/api/v1/approvals/${id}`, {
+const approval = await fetch(`https://shonin.dev/api/v1/approvals/${id}`, {
   headers: { Authorization: "Bearer YOUR_API_KEY" },
 }).then((r) => r.json());
 
-console.log(status.status); // "pending" | "approved" | "rejected"
+console.log(approval.status); // "pending" | "approved" | "rejected"
 ```
+
+The API never returns the approve or reject tokens, so the agent that asks for approval cannot approve its own request. Only the person who receives the email can decide. Opening a link in an email never decides anything either: it leads to a confirm page, and the decision is a POST from that page.
 
 ---
 
-## API Reference
+## Hosted demo limits
+
+The demo at shonin.dev shares one small email allowance, so it is deliberately capped:
+
+| Limit | Value |
+|---|---|
+| Requests per API key | 2 per day |
+| Recipient | Your own account email only |
+| Shared email budget | 50 per day across everyone |
+| Login emails sent through the backup route | 10 per day, 2 per address |
+
+For real use, [self-host](#self-hosting): none of these limits apply there.
+
+---
+
+## API reference
 
 Base URL: `https://shonin.dev/api/v1`
 
-All endpoints (except `GET /decide/:token`) require a Bearer token:
+Every endpoint except the email links needs a Bearer token:
 
 ```
 Authorization: Bearer YOUR_API_KEY
@@ -54,97 +77,82 @@ Authorization: Bearer YOUR_API_KEY
 
 Create an approval request and send the email.
 
-**Request body:**
-
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `action` | string | Yes | Description of what needs approval |
-| `approver_email` | string | Yes | Who receives the approval email |
+| `action` | string | Yes | What needs approval |
+| `approver_email` | string | Yes | Who receives the email |
 | `context` | string | No | Extra context shown in the email |
-| `webhook_url` | string | No | URL to POST decision to when resolved |
-| `expires_in_hours` | number | No | Link expiry window (default: 24) |
+| `webhook_url` | string | No | Public https URL that receives the decision |
+| `expires_in_hours` | number | No | Link expiry, default 24 |
+| `command_type` | string | No | For example `git_push_force`, `rm`, `sql_drop`. Inferred from `action` if omitted |
+| `files` | array | No | `[{ "path": "...", "status": "modified" \| "added" \| "deleted" \| "renamed" }]` |
+| `diff` | string | No | A diff to show the approver, truncated at 50KB |
 
-**Response (201):**
+Response `201`:
 
 ```json
 {
   "id": "uuid",
   "status": "pending",
-  "approve_token": "...",
-  "reject_token": "...",
-  "created_at": "2024-01-01T00:00:00Z",
-  "expires_at": "2024-01-02T00:00:00Z"
+  "created_at": "2026-01-01T00:00:00Z",
+  "expires_at": "2026-01-02T00:00:00Z",
+  "usage": { "unlimited": true }
 }
 ```
 
 ### GET /approvals/:id
 
-Get the current status of an approval.
+Returns `id`, `action`, `context`, `approver_email`, `status`, `webhook_url`, `expires_at`, `decided_at`, `created_at`, `command_type`, `files`, `diff`, `risk_level` and `risk_bullets`. You can only read approvals created with your own key.
 
-**Response (200):**
+### POST /decisions
+
+Ask a multiple-choice question instead of a yes or no.
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `question` | string | Yes | The question |
+| `options` | array | Yes | 2 to 10 items: `{ "key": "a", "label": "Ship it" }` |
+| `respondent_email` | string | Yes | Who receives the email |
+| `context` | string | No | Extra context |
+| `webhook_url` | string | No | Public https URL that receives the answer |
+| `expires_in_hours` | number | No | Default 24 |
+
+Response `201`: `id`, `status`, `created_at`, `expires_at`.
+
+### GET /decisions/:id
+
+Returns `id`, `status` (`pending` or `decided`), `chosen_key`, `decided_at`, `expires_at` and `created_at`.
+
+### Webhooks
+
+When set, the server POSTs JSON to `webhook_url` once the decision is made:
 
 ```json
-{
-  "id": "uuid",
-  "action": "Transfer $4,200...",
-  "approver_email": "finance@yourcompany.com",
-  "status": "approved",
-  "decided_at": "2024-01-01T10:23:00Z",
-  "expires_at": "2024-01-02T00:00:00Z",
-  "created_at": "2024-01-01T00:00:00Z"
-}
+{ "id": "uuid", "status": "approved", "decided_at": "2026-01-01T10:23:00Z" }
 ```
 
-### GET /decide/:token
+For decisions the payload is `{ "id", "status": "decided", "chosen_key", "decided_at" }`.
 
-Public endpoint — no auth required. Called when an approver clicks Approve or Reject in their email. Returns an HTML confirmation page.
+Webhook URLs must be public `https` URLs. The server refuses private and reserved addresses, does not follow redirects, and gives up after 5 seconds.
 
-**Webhook payload** (if `webhook_url` was set):
-
-```json
-{
-  "id": "uuid",
-  "status": "approved",
-  "action": "Transfer $4,200...",
-  "decided_at": "2024-01-01T10:23:00Z"
-}
-```
-
-**Error codes:**
+### Errors
 
 | Status | Meaning |
 |---|---|
+| 400 | Validation error in the request body, or a webhook URL that is not allowed |
 | 401 | Missing or invalid API key |
-| 400 | Validation error in request body |
-| 404 | Approval not found |
-| 409 | Decision already recorded |
-| 410 | Approval link has expired |
-
-Full interactive docs at [shonin.dev/docs](https://shonin.dev/docs).
+| 403 | Demo only: the recipient is not your account email |
+| 404 | Not found, or not yours |
+| 429 | Demo only: daily request limit reached |
+| 503 | Demo only: the shared email budget for today is used up |
 
 ---
 
-## Tech Stack
+## Self-hosting
 
-- **Framework:** Next.js 16, React 19, TypeScript
-- **Database:** Supabase (PostgreSQL)
-- **Email:** Resend + React Email templates
-- **Validation:** Zod
-- **Styling:** Tailwind CSS v4
+You need Node.js 20+, a [Supabase](https://supabase.com) project and a [Resend](https://resend.com) account with a verified domain.
 
----
-
-## Self-Hosting
-
-### Prerequisites
-
-- Node.js 20+
-- A [Supabase](https://supabase.com) project
-- A [Resend](https://resend.com) account
-
-### Setup
-
-1. Clone the repo and install dependencies:
+1. Clone and install:
 
 ```bash
 git clone https://github.com/Calm-Rock/shonin.git
@@ -152,74 +160,51 @@ cd shonin
 npm install
 ```
 
-2. Copy the environment file and fill in your values:
+2. Copy the environment file and fill it in:
 
 ```bash
 cp .env.example .env.local
 ```
 
-```env
-RESEND_API_KEY=re_...
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
-SUPABASE_SERVICE_ROLE_KEY=eyJ...
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-```
+| Variable | Description |
+|---|---|
+| `RESEND_API_KEY` | Your Resend API key |
+| `EMAIL_FROM_DOMAIN` | Your verified Resend domain. Emails go out as `approvals@`, `decisions@`, `login@` and `hello@` that domain |
+| `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | The project's public (anon) key |
+| `SUPABASE_SERVICE_ROLE_KEY` | The service-role key. Keep it secret; it is only used on the server |
+| `NEXT_PUBLIC_APP_URL` | Where the app is served, for example `http://localhost:3000` |
+| `DEMO_MODE` | Leave empty. Set to `true` only to turn on the hosted-demo limits above |
+| `ALLOW_PRIVATE_WEBHOOKS` | Set to `true` to allow `http` and private-network webhooks, for example behind a firewall |
 
-3. Run the database schema:
+3. Create the database: open the Supabase SQL editor and run `supabase/schema.sql`. It creates every table and turns on row-level security.
 
-In the Supabase dashboard, open the SQL editor and run `supabase/schema.sql`.
+4. Set up login: in Supabase go to Authentication, URL Configuration, set the Site URL to your `NEXT_PUBLIC_APP_URL` and add `<your app URL>/**` as a redirect URL.
 
-4. Insert an API key (run in Supabase SQL editor):
+5. Create your first API key in the SQL editor:
 
 ```sql
-INSERT INTO api_keys (key, name) VALUES ('shonin_test_yourkey', 'My key');
+insert into api_keys (key, name, email)
+values ('sk_live_' || encode(gen_random_bytes(18), 'hex'), 'my key', 'you@example.com')
+returning key;
 ```
 
-5. Start the dev server:
+6. Start the app:
 
 ```bash
 npm run dev
 ```
 
-App is available at `http://localhost:3000`.
-
-### Database Schema
-
-```sql
--- approvals: one row per approval request
-create table approvals (
-  id              uuid primary key default gen_random_uuid(),
-  account_id      text not null,          -- maps to api_keys.key
-  action          text not null,
-  context         text,
-  approver_email  text not null,
-  status          text not null default 'pending',
-  approve_token   text unique not null,
-  reject_token    text unique not null,
-  webhook_url     text,
-  expires_at      timestamptz not null,
-  decided_at      timestamptz,
-  created_at      timestamptz not null default now()
-);
-
--- api_keys: simple key store
-create table api_keys (
-  id         uuid primary key default gen_random_uuid(),
-  key        text unique not null,
-  name       text,
-  created_at timestamptz not null default now()
-);
-```
+Run the tests with `npm test`.
 
 ---
 
-## Dashboard
+## Tech stack
 
-View your approval history at `/dashboard?key=YOUR_API_KEY`. Shows status badges (pending / approved / rejected), timestamps, and approver emails for all requests associated with your key.
+Next.js 16 (App Router), React 19, TypeScript, Supabase (Postgres and Auth), Resend with React Email, Zod, Tailwind CSS 4, Vitest.
 
 ---
 
 ## License
 
-MIT
+[MIT](LICENSE)

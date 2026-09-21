@@ -7,7 +7,6 @@ export default function Home() {
       <Hero />
       <CodeSection />
       <HowItWorks />
-      <Pricing />
       <Footer />
     </div>
   );
@@ -47,7 +46,7 @@ function Hero() {
     <section className="max-w-6xl mx-auto px-6 pt-24 pb-20 flex flex-col items-center text-center">
       <div className="inline-flex items-center gap-2 bg-white/[0.05] border border-white/[0.08] rounded-full px-3 py-1 mb-8">
         <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-        <span className="text-xs text-[#888]">Now in beta · Free to start</span>
+        <span className="text-xs text-[#888]">Now in beta</span>
       </div>
 
       <h1 className="text-5xl sm:text-6xl font-bold tracking-tight leading-[1.1] max-w-3xl mb-6">
@@ -315,130 +314,6 @@ function HowItWorks() {
               <span className="text-4xl font-bold text-[#ddd]">{step.n}</span>
               <h3 className="text-[15px] font-semibold text-[#111]">{step.title}</h3>
               <p className="text-sm text-[#666] leading-relaxed">{step.body}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ─── Pricing ─────────────────────────────────────────────────────────── */
-const tiers = [
-  {
-    name: "Free",
-    price: "$0",
-    period: "/month",
-    description: "Get started at no cost.",
-    features: ["100 approvals / month", "1 sending domain", "Community support"],
-    cta: "Get Started",
-    highlighted: false,
-  },
-  {
-    name: "Pro",
-    price: "$29",
-    period: "/month",
-    description: "For teams moving fast.",
-    features: [
-      "2,000 approvals / month",
-      "Unlimited domains",
-      "Webhook support",
-      "Email support",
-    ],
-    cta: "Get Started",
-    highlighted: true,
-    badge: "Most Popular",
-  },
-  {
-    name: "Team",
-    price: "$99",
-    period: "/month",
-    description: "For production-critical workflows.",
-    features: [
-      "Unlimited approvals",
-      "Custom sending domain",
-      "Priority support",
-      "99.9% uptime SLA",
-    ],
-    cta: "Get Started",
-    highlighted: false,
-  },
-];
-
-function Pricing() {
-  return (
-    <section className="py-24 bg-[#0a0a0a]">
-      <div className="max-w-5xl mx-auto px-6">
-        <p className="text-xs font-semibold text-[#555] uppercase tracking-widest text-center mb-3">
-          Pricing
-        </p>
-        <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-center mb-4">
-          Simple pricing
-        </h2>
-        <p className="text-[#888] text-center text-sm mb-14">
-          No per-seat fees. No hidden charges. Pay for what you use.
-        </p>
-
-        <div className="grid sm:grid-cols-3 gap-5">
-          {tiers.map((tier) => (
-            <div
-              key={tier.name}
-              className={`relative rounded-xl p-6 flex flex-col gap-5 border ${
-                tier.highlighted
-                  ? "bg-white text-black border-white/20"
-                  : "bg-[#111] border-white/[0.08]"
-              }`}
-            >
-              {tier.badge && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] font-semibold px-3 py-0.5 rounded-full border border-white/10">
-                  {tier.badge}
-                </span>
-              )}
-
-              <div>
-                <p className={`text-xs font-semibold uppercase tracking-widest mb-1 ${tier.highlighted ? "text-[#555]" : "text-[#555]"}`}>
-                  {tier.name}
-                </p>
-                <div className="flex items-end gap-1">
-                  <span className={`text-4xl font-bold ${tier.highlighted ? "text-black" : "text-white"}`}>
-                    {tier.price}
-                  </span>
-                  <span className={`text-sm mb-1.5 ${tier.highlighted ? "text-[#666]" : "text-[#555]"}`}>
-                    {tier.period}
-                  </span>
-                </div>
-                <p className={`text-sm mt-1 ${tier.highlighted ? "text-[#555]" : "text-[#666]"}`}>
-                  {tier.description}
-                </p>
-              </div>
-
-              <ul className="flex flex-col gap-2.5 flex-1">
-                {tier.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-sm">
-                    <svg
-                      className={`w-4 h-4 mt-0.5 shrink-0 ${tier.highlighted ? "text-green-600" : "text-green-500"}`}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2.5}
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span className={tier.highlighted ? "text-[#333]" : "text-[#888]"}>{f}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <a
-                href="/signup"
-                className={`mt-2 text-center text-sm font-medium py-2.5 rounded-lg transition-colors ${
-                  tier.highlighted
-                    ? "bg-black text-white hover:bg-[#222]"
-                    : "bg-white/[0.06] text-white hover:bg-white/10 border border-white/[0.08]"
-                }`}
-              >
-                {tier.cta}
-              </a>
             </div>
           ))}
         </div>

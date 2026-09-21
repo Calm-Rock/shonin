@@ -18,7 +18,8 @@ export async function GET(request: NextRequest) {
     if (!error) user = data.user;
   } else if (tokenHash) {
     // Links sent by /api/v1/auth/magic-link (the Resend fallback) carry a token hash instead of a PKCE code.
-    const { data, error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'magiclink' });
+    // First-time users get a signup-style token and returning users a magiclink one; type 'email' accepts both.
+    const { data, error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'email' });
     if (!error) user = data.user;
   }
 

@@ -42,3 +42,8 @@ next-env.d.ts
 !.env.example
 .claude
 .gstack/
+
+# local agent files and notes (next dev regenerates AGENTS.md)
+AGENTS.md
+CLAUDE.md
+TODOS.md
